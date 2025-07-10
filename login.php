@@ -26,6 +26,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         $error = "Invalid email or password!";
     }
+    $login_error = "Invalid email or password!";
+
 }
 ?>
 
@@ -40,12 +42,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body>
   <div class="container">
     <h2>Login</h2>
-    <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
+    
     <form method="POST">
       <input type="email" name="email" required placeholder="Email">
       <input type="password" name="password" required placeholder="Password">
       <button type="submit" class="btn">Login</button>
     </form>
+    <?php if (isset($login_error)): ?>
+  <p style="color:red;"><?php echo $login_error; ?></p>
+  <p><a href="forgot_password.php">Forgot Password?</a></p>
+<?php endif; ?>
+
     <p>New user? <a href="register.php">Register</a></p>
   </div>
 </body>
