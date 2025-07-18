@@ -3,6 +3,12 @@ include "db.php";
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   $email = $_POST['email'];
+  $captcha_input = $_POST['captcha'];
+
+  if ($captcha_input != $_SESSION['captcha_code']) {
+    $error = "Incorrect CAPTCHA code!";
+  } else {
+    
   $result = $conn->query("SELECT user_id FROM users WHERE email = '$email'");
   
   if ($result->num_rows > 0) {
@@ -13,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   } else {
     $error = "Email not found!";
   }
+}
 }
 ?>
 
@@ -31,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <h2>Forgot Password</h2>
 <form method="POST">
   <input type="email" name="email" placeholder="Enter your email" required><br>
+
   <button type="submit">Reset Password</button>
 </form>
 

@@ -63,9 +63,9 @@
 <body>
 
   <div class="slideshow">
-    <img src="images/about1.jpg">
-    <img src="images/about2.jpg">
-    <img src="images/about3.jpg">
+    <img src="images/aboutbg1.jpeg">
+    <img src="images/aboutbg2.jpeg">
+    <img src="images/homebg3.jpeg">
   </div>
 
   <div class="overlay">
