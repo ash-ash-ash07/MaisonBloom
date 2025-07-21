@@ -18,7 +18,12 @@ $order_id = intval($_GET['order_id']);
 $patient_id = $_SESSION['user_id'];
 
 // Get order details
-$order = $conn->query("SELECT * FROM orders WHERE order_id = $order_id AND patient_id = $patient_id")->fetch_assoc();
+  $order = $conn->query("
+    SELECT o.*, u.name as patient_name 
+    FROM orders o
+    JOIN users u ON o.patient_id = u.user_id
+    WHERE o.order_id = $order_id AND o.patient_id = $patient_id
+")->fetch_assoc();
 
 if (!$order) {
     header("Location: products.php");
@@ -239,6 +244,11 @@ $items = $conn->query("
           Total: ₹<?php echo number_format($order['total_amount'], 2); ?>
         </div>
       </div>
+      <div class="shipping-info">
+    <h3>Shipping Information</h3>
+    <p><?php echo nl2br(htmlspecialchars($order['shipping_address'])); ?></p>
+    <p>Payment Method: <?php echo htmlspecialchars($order['payment_method']); ?></p>
+</div>
       
       <a href="products.php" class="btn">Continue Shopping</a>
     </div>

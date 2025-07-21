@@ -5,8 +5,36 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'patient') {
     header("Location: ../login.php");
     exit;
 }
+
 $user_id = $_SESSION['user_id'];
 $name = $_SESSION['name'];
+// Add to cart functionality
+if (isset($_POST['add_to_cart'])) {
+    $product_id = intval($_POST['product_id']);
+    $quantity = intval($_POST['quantity']);
+    
+    // Get product details
+    $product = $conn->query("SELECT * FROM products WHERE product_id = $product_id")->fetch_assoc();
+    
+    if ($product) {
+        if (!isset($_SESSION['cart'])) {
+            $_SESSION['cart'] = array();
+        }
+        
+        if (isset($_SESSION['cart'][$product_id])) {
+            $_SESSION['cart'][$product_id]['quantity'] += $quantity;
+        } else {
+            $_SESSION['cart'][$product_id] = array(
+                'name' => $product['name'],
+                'price' => $product['price'],
+                'image' => $product['image'],
+                'quantity' => $quantity
+            );
+        }
+        
+        echo "<script>alert('Product added to cart!');</script>";
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -272,13 +300,71 @@ $name = $_SESSION['name'];
   text-align: center;
 }
 
-.btn-group {
-  display: flex;
-  gap: 10px;
-  margin-top: auto;
-  padding-top: 15px;
-}
-
+ .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-direction: column;
+    }
+    
+    .quantity-control {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 10px 0;
+    }
+    
+    .quantity-btn {
+      width: 25px;
+      height: 25px;
+      background: var(--primary-light);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+    
+    .quantity-btn:hover {
+      background: var(--primary-dark);
+      transform: scale(1.1);
+    }
+    
+    .quantity-input {
+      width: 40px;
+      text-align: center;
+      margin: 0 8px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 3px;
+      font-size: 14px;
+    }
+    
+    .cart-icon {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+    
+    .cart-count {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: var(--secondary);
+      color: white;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+    }
 .btn-group form {
   flex: 1;
 }
@@ -655,11 +741,106 @@ $name = $_SESSION['name'];
         flex-direction: column;
       }
     }
+     .order-history-section {
+      max-width: 1000px;
+      margin: 80px auto;
+      padding: 40px;
+      background-color: var(--white);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .order-history-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(138, 99, 210, 0.1) 0%, rgba(138, 99, 210, 0) 70%);
+    }
+    
+    .order-history-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+    }
+    
+    .order-history-table th {
+      background-color: var(--primary);
+      color: var(--white);
+      padding: 15px;
+      text-align: left;
+      font-weight: 500;
+    }
+    
+    .order-history-table td {
+      padding: 15px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .order-history-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .order-history-table tr:hover {
+      background-color: rgba(138, 99, 210, 0.03);
+    }
+    
+    .order-status {
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      display: inline-block;
+    }
+    
+    .status-pending {
+      background-color: #FFF3CD;
+      color: #856404;
+    }
+    
+    .status-processing {
+      background-color: #BEE5EB;
+      color: #0C5460;
+    }
+    
+    .status-shipped {
+      background-color: #D1ECF1;
+      color: #0C5460;
+    }
+    
+    .status-delivered {
+      background-color: #D4EDDA;
+      color: #155724;
+    }
+    
+    .status-cancelled {
+      background-color: #F8D7DA;
+      color: #721C24;
+    }
+    
+    .view-order-btn {
+      background-color: var(--primary-light);
+      color: var(--primary-dark);
+      padding: 5px 12px;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: all 0.3s ease;
+    }
+    
+    .view-order-btn:hover {
+      background-color: var(--primary);
+      color: white;
+    }
   </style>
 </head>
 <body>
 
-  <nav>
+ <nav>
     <div class="logo">
       <i class="fas fa-spa"></i>
       <span>Maison Bloom</span>
@@ -670,6 +851,12 @@ $name = $_SESSION['name'];
       <a href="../products.php">Products</a>
       <a href="../dashboard/patient_feedback.php">Feedback</a>
       <a href="../logout.php">Logout</a>
+      <a href="../cart.php" class="cart-icon">
+        <i class="fas fa-shopping-cart"></i>
+        <?php if(isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
+          <span class="cart-count"><?php echo array_sum(array_column($_SESSION['cart'], 'quantity')); ?></span>
+        <?php endif; ?>
+      </a>
     </div>
   </nav>
 
@@ -699,18 +886,20 @@ $name = $_SESSION['name'];
           <div class='product-info'>
             <h3>{$row['name']}</h3>
             <div class='price'>₹{$row['price']}</div>
-            <div class='btn-group'>
-              <form method='POST' action='../cart.php'>
-                <input type='hidden' name='product_id' value='{$row['product_id']}'>
-                <input type='hidden' name='quantity' value='1'>
-                <button type='submit' name='add_to_cart' class='btn btn-primary'>
-                  <i class='fas fa-cart-plus'></i> Add to Cart
-                </button>
-              </form>
-              <a href='../checkout.php?product_id={$row['product_id']}&quantity=1' class='btn btn-secondary'>
-                <i class='fas fa-bolt'></i> Buy Now
-              </a>
-            </div>
+            <form method='POST' action='../cart.php'>
+              <div class='quantity-control'>
+                <button type='button' class='quantity-btn minus'><i class='fas fa-minus'></i></button>
+                <input type='number' name='quantity' class='quantity-input' value='1' min='1'>
+                <button type='button' class='quantity-btn plus'><i class='fas fa-plus'></i></button>
+              </div>
+              <input type='hidden' name='product_id' value='{$row['product_id']}'>
+              <div class='btn-group'>
+                
+                <a href='../checkout.php?product_id={$row['product_id']}&quantity=1' class='btn btn-secondary'>
+                  <i class='fas fa-bolt'></i> Buy Now
+                </a>
+              </div>
+            </form>
           </div>
         </div>
       ";
@@ -720,6 +909,7 @@ $name = $_SESSION['name'];
       <i class="fas fa-arrow-right"></i> View All Products
     </a>
 </div>
+
 
   <div class="how-it-works">
     <div class="steps-container">
@@ -808,28 +998,33 @@ $name = $_SESSION['name'];
       <tbody>
         <?php
         $query="
-          SELECT b.*, c.date_time, u.name AS doctor_name 
-          FROM bookings b
-          JOIN consultation_slots c ON b.slot_id = c.slot_id
-          JOIN doctor_profiles d ON c.doctor_id = d.doctor_id
-          JOIN users u ON d.user_id = u.user_id
-          WHERE b.patient_id = $user_id
-          ORDER BY b.created_at DESC
-        ";
+    SELECT b.*, c.date_time, u.name AS doctor_name, cl.meeting_url
+    FROM bookings b
+    JOIN consultation_slots c ON b.slot_id = c.slot_id
+    JOIN doctor_profiles d ON c.doctor_id = d.doctor_id
+    JOIN users u ON d.user_id = u.user_id
+    LEFT JOIN consultation_links cl ON b.booking_id = cl.appointment_id
+    WHERE b.patient_id = $user_id
+    ORDER BY b.created_at DESC
+";
         $res = $conn->query($query);
         if ($res && $res->num_rows > 0){
           while ($row = $res->fetch_assoc()){
             $status_class = $row['status'];
-            $formatted_date = date("D, M j, Y - h:i A", strtotime($row['date_time']));
-            echo "<tr>
-                    <td><i class='fas fa-user-md'></i> {$row['doctor_name']}</td>
-                    <td><i class='far fa-clock'></i> $formatted_date</td>
-                    <td><span class='status $status_class'>" . ucfirst($row['status']) . "</span></td>
-                  </tr>";
-          }
-        } else {
-          echo "<tr><td colspan='3' style='text-align: center;'>No bookings yet. <a href='../booking.php' style='color: var(--primary);'>Book your first appointment</a></td></tr>";
-        }
+          $formatted_date = date("D, M j, Y - h:i A", strtotime($row['date_time']));
+echo "<tr>
+        <td><i class='fas fa-user-md'></i> {$row['doctor_name']}</td>
+        <td><i class='far fa-clock'></i> $formatted_date</td>
+        <td><span class='status $status_class'>" . ucfirst($row['status']) . "</span></td>";
+        
+if (!empty($row['meeting_url']) && $row['status'] == 'approved') {
+    echo "<td><a href='{$row['meeting_url']}' target='_blank' class='btn btn-primary'><i class='fas fa-video'></i> Join Consultation</a></td>";
+} else {
+    echo "<td></td>";
+}
+        
+echo "</tr>";
+          }} 
         ?>
       </tbody>
     </table>
@@ -846,6 +1041,72 @@ $name = $_SESSION['name'];
       <i class="fas fa-comment-alt"></i> Give Feedback
     </a>
   </div>
+  <div class="order-history-section">
+    <h2 class="section-title">
+      <h2>Your Order History</h2>
+    </h2>
+    <table class="order-history-table">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php
+        $orders_query = "
+          SELECT o.* 
+          FROM orders o
+          WHERE o.patient_id = $user_id
+          ORDER BY o.order_date DESC
+          LIMIT 5
+        ";
+        $orders_result = $conn->query($orders_query);
+        
+        if ($orders_result && $orders_result->num_rows > 0) {
+          while ($order = $orders_result->fetch_assoc()) {
+            $status_class = 'status-' . $order['status'];
+            $formatted_date = date("M j, Y", strtotime($order['order_date']));
+            echo "<tr>
+                    <td>#{$order['order_id']}</td>
+                    <td>{$formatted_date}</td>
+                    <td>₹{$order['total_amount']}</td>
+                    <td><span class='order-status {$status_class}'>" . ucfirst($order['status']) . "</span></td>
+                    <td><a href='../order_details.php?order_id={$order['order_id']}' class='view-order-btn'>View Details</a></td>
+                  </tr>";
+          }
+        } else {
+          echo "<tr><td colspan='5' style='text-align: center;'>No orders yet. <a href='../products.php' style='color: var(--primary);'>Start shopping</a></td></tr>";
+        }
+        ?>
+      </tbody>
+    </table>
+    <div style="text-align: center; margin-top: 20px;">
+      <a href="../order_history.php" class="btn-view-more">
+        <i class="fas fa-history"></i> View Full Order History
+      </a>
+    </div>
+  </div>
+  <script>
+  // Quantity control buttons
+  document.querySelectorAll('.quantity-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const input = this.parentElement.querySelector('.quantity-input');
+      let value = parseInt(input.value);
+      
+      if (this.classList.contains('minus')) {
+        if (value > 1) {
+          input.value = value - 1;
+        }
+      } else {
+        input.value = value + 1;
+      }
+    });
+  });
+</script>
 
 </body>
 </html>

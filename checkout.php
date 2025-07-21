@@ -36,7 +36,7 @@ if (isset($_GET['product_id']) && isset($_GET['quantity'])) {
 }
 
 // Process checkout
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
+  if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
     $patient_id = $_SESSION['user_id'];
     $total_amount = 0;
     
@@ -44,18 +44,52 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
     foreach ($_SESSION['cart'] as $product_id => $item) {
         $total_amount += $item['price'] * $item['quantity'];
     }
+    // Prepare shipping address
+    $shipping_address = "{$_POST['first_name']} {$_POST['last_name']}\n";
+    $shipping_address .= "{$_POST['address']}\n";
+    $shipping_address .= "{$_POST['city']}, {$_POST['state']} {$_POST['zip']}\n";
+    $shipping_address .= "Phone: {$_POST['phone']}";
     
+    $notes = $_POST['notes'] ?? '';
+    $payment_method = 'Credit Card'; 
     // Insert order
-    $conn->query("INSERT INTO orders (patient_id, total_amount, status) VALUES ($patient_id, $total_amount, 'pending')");
+    $conn->query("
+        INSERT INTO orders (
+            patient_id, 
+            order_date, 
+            total_amount, 
+            status, 
+            shipping_address,
+            payment_method
+        ) VALUES (
+            $patient_id, 
+            NOW(), 
+            $total_amount, 
+            'pending', 
+            '" . $conn->real_escape_string($shipping_address) . "',
+            '" . $conn->real_escape_string($payment_method) . "'
+        )
+    ");
     $order_id = $conn->insert_id;
     
     // Insert order items
-    foreach ($_SESSION['cart'] as $product_id => $item) {
+     foreach ($_SESSION['cart'] as $product_id => $item) {
         $price = $item['price'];
         $quantity = $item['quantity'];
-        $conn->query("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ($order_id, $product_id, $quantity, $price)");
+        $conn->query("
+            INSERT INTO order_items (
+                order_id, 
+                product_id, 
+                quantity, 
+                price
+            ) VALUES (
+                $order_id, 
+                $product_id, 
+                $quantity, 
+                $price
+            )
+        ");
     }
-    
     // Clear cart
     unset($_SESSION['cart']);
     

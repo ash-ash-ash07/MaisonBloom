@@ -7,70 +7,45 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'doctor') {
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
-$user = $conn->query("SELECT name, email FROM users WHERE user_id = $user_id")->fetch_assoc();
-$profile = $conn->query("SELECT * FROM doctor_profiles WHERE user_id = $user_id")->fetch_assoc();
-$photo = !empty($profile['profile_photo']) ? "../uploads/doctors/" . $profile['profile_photo'] : "../images/default.png";
+$booking_id = intval($_GET['booking_id']);
+$doctor_id = $conn->query("SELECT doctor_id FROM doctor_profiles WHERE user_id = {$_SESSION['user_id']}")->fetch_assoc()['doctor_id'];
 
-// Get upcoming appointments count
-$appointments_count = $conn->query("
-    SELECT COUNT(*) as count 
+// Get consultation details
+$consultation = $conn->query("
+    SELECT b.*, u.name as patient_name, u.email as patient_email, 
+           c.date_time, cl.meeting_url, cl.status as meeting_status
     FROM bookings b
     JOIN consultation_slots c ON b.slot_id = c.slot_id
-    WHERE c.doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
-    AND b.status = 'approved'
-    AND c.date_time > NOW()
-")->fetch_assoc()['count'];
-$prescriptions_count = $conn->query("
-    SELECT COUNT(*) as count 
-    FROM prescriptions
-    WHERE doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
-    AND status = 'active'
-")->fetch_assoc()['count'];
+    JOIN users u ON b.patient_id = u.user_id
+    LEFT JOIN consultation_links cl ON b.booking_id = cl.appointment_id
+    WHERE b.booking_id = $booking_id AND c.doctor_id = $doctor_id
+")->fetch_assoc();
 
-// Handle actions
-if (isset($_GET['action'])) {
-    $booking_id = intval($_GET['booking_id']);
-    $doctor_id = $profile['doctor_id'];
-    
-    switch ($_GET['action']) {
-        case 'approve':
-            case 'approve':
-    // Get the slot_id for this booking
-    $slot_info = $conn->query("SELECT slot_id FROM bookings WHERE booking_id = $booking_id")->fetch_assoc();
-    $slot_id = $slot_info['slot_id'];
-    
-    // Update booking status and mark slot as booked
-    $conn->query("UPDATE bookings SET status = 'approved' WHERE booking_id = $booking_id");
-    $conn->query("UPDATE consultation_slots SET status = 'booked' WHERE slot_id = $slot_id");
-    
-    // Reject all other pending requests for this slot
-    $conn->query("UPDATE bookings SET status = 'rejected' WHERE slot_id = $slot_id AND status = 'pending'");
-    break;
-            
-        case 'reject':
-            $conn->query("UPDATE bookings SET status = 'rejected' WHERE booking_id = $booking_id");
-            break;
-            
-        case 'start_consultation':
-    // Generate a unique meeting URL (in a real app, you'd use Zoom/Google Meet API)
-    $meeting_id = uniqid();
-    $meeting_url = "https://meet.maisonbloom.com/" . $meeting_id;
-    $conn->query("INSERT INTO consultation_links (appointment_id, meeting_url, meeting_id, status) 
-                 VALUES ($booking_id, '$meeting_url', '$meeting_id', 'scheduled')");
-    break;
-    }
-    
-    header("Location: doctor_dashboard.php");
+if (!$consultation) {
+    header("Location: doctor_consultations.php");
     exit;
 }
+
+// Get patient records for this patient
+$records = $conn->query("
+    SELECT * FROM patient_records 
+    WHERE patient_id = {$consultation['patient_id']} AND doctor_id = $doctor_id
+    ORDER BY created_at DESC
+");
+
+// Get prescriptions for this patient
+$prescriptions = $conn->query("
+    SELECT * FROM prescriptions 
+    WHERE patient_id = {$consultation['patient_id']} AND doctor_id = $doctor_id
+    ORDER BY created_at DESC
+");
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Doctor Dashboard - Maison Bloom</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultation Details - Maison Bloom</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
@@ -816,9 +791,8 @@ if (isset($_GET['action'])) {
   </style>
 </head>
 <body>
-
-<div class="dashboard-container">
-  <!-- Sidebar -->
+    <div class="dashboard-container">
+        <div class="dashboard-container">
   <div class="sidebar">
     <div class="floating floating-1"></div>
     <div class="floating floating-2"></div>
@@ -878,174 +852,52 @@ if (isset($_GET['action'])) {
       <span>Logout</span>
     </a>
   </div>
-
-  <!-- Main Content -->
-  <div class="main-content">
-    <div class="header">
-      <h1 class="animate__animated animate__fadeIn">Doctor Dashboard</h1>
-      <div class="date-display animate__animated animate__fadeIn">
-        <i class="far fa-calendar-alt"></i>
-        <span><?php echo date('l, F j, Y'); ?></span>
-      </div>
-    </div>
-
-    <div class="stats-cards">
-      <div class="stat-card animate__animated animate__fadeInLeft">
-        <i class="fas fa-calendar-check"></i>
-        <div class="stat-title">Upcoming Appointments</div>
-        <div class="stat-value"><?php echo $appointments_count; ?></div>
-        <div class="stat-change">+2 from yesterday</div>
-      </div>
-      <div class="stat-card animate__animated animate__fadeInLeft animate__delay-1s">
-        <i class="fas fa-user-clock"></i>
-        <div class="stat-title">Pending Approvals</div>
-        <div class="stat-value">3</div>
-        <div class="stat-change">-1 from yesterday</div>
-      </div>
-      <div class="stat-card animate__animated animate__fadeInLeft animate__delay-2s">
-        <i class="fas fa-file-medical"></i>
-        <div class="stat-title">Prescriptions Issued</div>
-        <div class="stat-value"><?php echo $prescriptions_count; ?></div>
-        <div class="stat-change">+5 this week</div>
-      </div>
-    </div>
-
-    <div class="quick-actions">
-      <a href="doctor_add_slot.php" class="action-btn animate__animated animate__fadeIn">
-        <i class="fas fa-plus-circle"></i>
-        <span class="action-title">Add Slot</span>
-      </a>
-      <a href="doctor_manage_slots.php" class="action-btn animate__animated animate__fadeIn animate__delay-1s">
-        <i class="fas fa-calendar-alt"></i>
-        <span class="action-title">Manage Slots</span>
-      </a>
-      <a href="#" class="action-btn animate__animated animate__fadeIn animate__delay-2s">
-        <i class="fas fa-users"></i>
-        <span class="action-title">Patient Records</span>
-      </a>
-      <a href="#" class="action-btn animate__animated animate__fadeIn animate__delay-3s">
-        <i class="fas fa-file-prescription"></i>
-        <span class="action-title">Issue Prescription</span>
-      </a>
-    </div>
-
-    <div class="upcoming-appointments animate__animated animate__fadeIn">
-      <h2 class="section-title">
-        <i class="fas fa-calendar-day"></i>
-        <span>Upcoming Appointments</span>
-      </h2>
-      
-      <table class="appointments-table">
-        <thead>
-          <tr>
-            <th>Patient</th>
-            <th>Appointment Time</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-           <?php
-          $appointments = $conn->query("
-            SELECT b.booking_id, u.name as patient_name, c.date_time, b.status, 
-                   u.user_id as patient_id, p.record_id, cl.meeting_url
-            FROM bookings b
-            JOIN consultation_slots c ON b.slot_id = c.slot_id
-            JOIN users u ON b.patient_id = u.user_id
-            LEFT JOIN patient_records p ON b.booking_id = p.appointment_id AND p.doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
-            LEFT JOIN consultation_links cl ON b.booking_id = cl.appointment_id
-            WHERE c.doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
-            AND c.date_time > NOW()
-            ORDER BY c.date_time ASC
-            LIMIT 5
-          ");
-          
-          if ($appointments && $appointments->num_rows > 0) {
-            while ($row = $appointments->fetch_assoc()) {
-              $date = date('M j, Y', strtotime($row['date_time']));
-              $time = date('h:i A', strtotime($row['date_time']));
-              $has_record = !empty($row['record_id']);
-              $has_meeting = !empty($row['meeting_url']);
-              
-              echo "
-                <tr>
-                  <td class='patient-name'>{$row['patient_name']}</td>
-                  <td>
-                    <div class='appointment-time'>
-                      <span class='appointment-date'>{$date}</span>
-                      <span class='appointment-hour'>{$time}</span>
-                    </div>
-                  </td>
-                  <td><span class='status-badge {$row['status']}'>" . ucfirst($row['status']) . "</span></td>
-                  <td>
-                    <a href='doctor_view_patient.php?patient_id={$row['patient_id']}' class='action-icon' title='View Patient'>
-                      <i class='fas fa-eye'></i>
-                    </a>";
-                    
-              if ($row['status'] == 'pending') {
-                echo "
-                    <a href='doctor_dashboard.php?action=approve&booking_id={$row['booking_id']}' class='action-icon' title='Approve'>
-                      <i class='fas fa-check'></i>
+        
+        <div class="main-content">
+            <div class="header">
+                <h1>Consultation Details</h1>
+            </div>
+            
+            <div class="consultation-details">
+                <h3>Consultation with <?php echo htmlspecialchars($consultation['patient_name']); ?></h3>
+                <p>Date: <?php echo date('M j, Y h:i A', strtotime($consultation['date_time'])); ?></p>
+                <p>Status: <span class="status-badge <?php echo $consultation['meeting_status']; ?>">
+                    <?php echo ucfirst($consultation['meeting_status']); ?>
+                </span></p>
+                
+                <?php if ($consultation['meeting_url']): ?>
+                    <a href="<?php echo $consultation['meeting_url']; ?>" target="_blank" class="btn-join">
+                        <i class="fas fa-video"></i> Meeting Link
                     </a>
-                    <a href='doctor_dashboard.php?action=reject&booking_id={$row['booking_id']}' class='action-icon' title='Reject'>
-                      <i class='fas fa-times'></i>
-                    </a>";
-              }
-              if ($row['status'] == 'approved') {
-    // Check if meeting exists
-    $meeting = $conn->query("SELECT * FROM consultation_links WHERE appointment_id = {$row['booking_id']}")->fetch_assoc();
-    
-    if ($meeting) {
-        echo "
-        <a href='{$meeting['meeting_url']}' target='_blank' class='action-icon' title='Join Consultation'>
-            <i class='fas fa-video'></i>
-        </a>";
-    } else {
-        echo "
-        <a href='doctor_dashboard.php?action=start_consultation&booking_id={$row['booking_id']}' class='action-icon' title='Start Consultation'>
-            <i class='fas fa-video'></i>
-        </a>";
-    }
-    
-    echo "
-    <a href='doctor_issue_prescription.php?patient_id={$row['patient_id']}&booking_id={$row['booking_id']}' class='action-icon' title='Issue Prescription'>
-        <i class='fas fa-file-prescription'></i>
-    </a>";
-}
-}  
-          }
-          ?>
-        </tbody>
-      </table>
+                <?php endif; ?>
+            </div>
+            
+            <div class="patient-records">
+                <h3>Patient Records</h3>
+                <?php if ($records && $records->num_rows > 0): ?>
+                    <!-- Display records table -->
+                <?php else: ?>
+                    <p>No records found for this patient.</p>
+                <?php endif; ?>
+                
+                <a href="doctor_add_record.php?patient_id=<?php echo $consultation['patient_id']; ?>" class="btn-add-record">
+                    <i class="fas fa-plus"></i> Add New Record
+                </a>
+            </div>
+            
+            <div class="prescriptions">
+                <h3>Prescriptions</h3>
+                <?php if ($prescriptions && $prescriptions->num_rows > 0): ?>
+                    <!-- Display prescriptions table -->
+                <?php else: ?>
+                    <p>No prescriptions found for this patient.</p>
+                <?php endif; ?>
+                
+                <a href="doctor_issue_prescription.php?patient_id=<?php echo $consultation['patient_id']; ?>&booking_id=<?php echo $booking_id; ?>" class="btn-add-prescription">
+                    <i class="fas fa-plus"></i> Issue New Prescription
+                </a>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
-
-<script>
-  // Add scroll effect to navbar
-  window.addEventListener('scroll', function() {
-    const sidebar = document.querySelector('.sidebar');
-    if (window.scrollY > 10) {
-      sidebar.classList.add('scrolled');
-    } else {
-      sidebar.classList.remove('scrolled');
-    }
-  });
-
-  // Add animation to stat cards on scroll
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('animate__fadeIn');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.1 });
-
-  document.querySelectorAll('.stat-card, .action-btn, .upcoming-appointments').forEach(el => {
-    observer.observe(el);
-  });
-</script>
-
 </body>
 </html>
