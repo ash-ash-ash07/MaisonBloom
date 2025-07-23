@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         VALUES ($patient_id, $doctor_id, $booking_id, '$medication', '$dosage', '$instructions')
     ");
     
-    header("Location: doctor_prescriptions.php");
+    header("Location: doctor_issue_prescriptions.php");
     exit;
 }
 
