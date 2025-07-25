@@ -8,52 +8,40 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'doctor') {
 }
 
 $user_id = $_SESSION['user_id'];
+$doctor_id = $conn->query("SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id")->fetch_assoc()['doctor_id'];
 
-// Get user info with error handling
-$user_query = $conn->query("SELECT name, email FROM users WHERE user_id = $user_id");
-if (!$user_query) {
-    die("Database error: " . $conn->error);
-}
-$user = $user_query->fetch_assoc();
-
-if (!$user) {
-    die("User not found");
-}
-
-// Get doctor profile with error handling
-$profile_query = $conn->query("SELECT * FROM doctor_profiles WHERE user_id = $user_id");
-if (!$profile_query) {
-    die("Database error: " . $conn->error);
-}
-$profile = $profile_query->fetch_assoc();
-
-if (!$profile) {
-    header("Location: doctor_create_profile.php");
-    exit;
-}
-
-$photo = !empty($profile['profile_photo']) ? "../uploads/doctors/" . $profile['profile_photo'] : "../images/default.png";
-
-// Get upcoming appointments count with error handling
-$appointments_count = 0;
-git status
-git add .
-git commit -m "WIP: save current dashboard changes"
-git pull
-$count_query = $conn->query("
-    SELECT COUNT(*) as count 
+// Get all patients who have had appointments with this doctor
+$patients = $conn->query("
+    SELECT DISTINCT u.user_id, u.name, u.email
     FROM bookings b
     JOIN consultation_slots c ON b.slot_id = c.slot_id
-    WHERE c.doctor_id = {$profile['doctor_id']}
-    AND b.status = 'approved'
-    AND c.date_time > NOW()
-")->fetch_assoc()['count'];
+    JOIN users u ON b.patient_id = u.user_id
+    WHERE c.doctor_id = $doctor_id
+    ORDER BY u.name
+");
+
+// Get patient records if a specific patient is selected
+$selected_patient = null;
+$patient_records = [];
+if (isset($_GET['patient_id'])) {
+    $patient_id = intval($_GET['patient_id']);
+    $selected_patient = $conn->query("SELECT * FROM users WHERE user_id = $patient_id")->fetch_assoc();
+    
+    $patient_records = $conn->query("
+        SELECT r.*, b.booking_id, c.date_time as appointment_date
+        FROM patient_records r
+        JOIN bookings b ON r.appointment_id = b.booking_id
+        JOIN consultation_slots c ON b.slot_id = c.slot_id
+        WHERE r.patient_id = $patient_id AND r.doctor_id = $doctor_id
+        ORDER BY r.created_at DESC
+    ");
+}
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Doctor Dashboard - Maison Bloom</title>
+  <title>Patient Records - Maison Bloom</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -590,12 +578,218 @@ $count_query = $conn->query("
         padding: 20px;
       }
     }
+    .patient-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.patient-card {
+  background: var(--white);
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  text-decoration: none;
+  color: var(--text);
+}
+
+.patient-card:hover, .patient-card.active {
+  background-color: var(--primary-light);
+  color: var(--white);
+}
+
+.patient-card.active {
+  border-left: 4px solid var(--primary-dark);
+}
+
+.patient-name {
+  font-weight: 600;
+}
+
+.patient-email {
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+.patient-card.active .patient-email,
+.patient-card:hover .patient-email {
+  color: rgba(255,255,255,0.8);
+}
+
+.records-list {
+  margin-top: 20px;
+}
+
+.record-card {
+  background: var(--white);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 15px;
+}
+
+.record-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.record-date {
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
+.record-actions a {
+  color: var(--primary);
+  margin-left: 10px;
+}
+
+.record-diagnosis, .record-treatment {
+  margin-bottom: 15px;
+}
+
+.record-diagnosis h4, .record-treatment h4 {
+  color: var(--primary-dark);
+  margin-bottom: 5px;
+}
+
+.btn-add-record {
+  display: inline-block;
+  padding: 10px 20px;
+  background: var(--primary);
+  color: var(--white);
+  border-radius: 8px;
+  text-decoration: none;
+  margin-bottom: 20px;
+  transition: var(--transition);
+}
+
+.btn-add-record:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+/* Prescription Form */
+.prescription-form {
+  max-width: 600px;
+  background: var(--white);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--primary-dark);
+}
+
+.form-group input[type="text"],
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 10px 15px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.form-group textarea {
+  min-height: 100px;
+}
+
+.btn-submit {
+  background: var(--primary);
+  color: var(--white);
+  padding: 12px 25px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.btn-submit:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.patient-info {
+  background: rgba(108, 92, 231, 0.1);
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-top: 5px;
+}
+
+/* Consultation Tables */
+.consultation-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.consultation-table th {
+  background-color: var(--primary);
+  color: var(--white);
+  padding: 15px;
+  text-align: left;
+}
+
+.consultation-table td {
+  padding: 15px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.consultation-table tr:last-child td {
+  border-bottom: none;
+}
+
+.btn-join, .btn-start, .btn-view {
+  display: inline-block;
+  padding: 8px 15px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: var(--transition);
+}
+
+.btn-join {
+  background: var(--accent);
+  color: var(--white);
+}
+
+.btn-start {
+  background: var(--primary);
+  color: var(--white);
+}
+
+.btn-view {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.btn-join:hover, .btn-start:hover, .btn-view:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.consultation-section {
+  margin-bottom: 40px;
+}
   </style>
 </head>
 <body>
 
 <div class="dashboard-container">
-  <!-- Sidebar -->
   <div class="sidebar">
     <div class="floating floating-1"></div>
     <div class="floating floating-2"></div>
@@ -655,148 +849,64 @@ $count_query = $conn->query("
       <span>Logout</span>
     </a>
   </div>
-
-  <!-- Main Content -->
+  
   <div class="main-content">
     <div class="header">
-      <h1 class="animate__animated animate__fadeIn">Doctor Dashboard</h1>
-      <div class="date-display animate__animated animate__fadeIn">
-        <i class="far fa-calendar-alt"></i>
-        <span><?php echo date('l, F j, Y'); ?></span>
+      <h1>Patient Records</h1>
+    </div>
+
+    <div class="patient-selection">
+      <h3>Select a Patient</h3>
+      <div class="patient-list">
+        <?php if ($patients && $patients->num_rows > 0): ?>
+          <?php while ($patient = $patients->fetch_assoc()): ?>
+            <a href="doctor_patient_records.php?patient_id=<?php echo $patient['user_id']; ?>" 
+               class="patient-card <?php echo isset($_GET['patient_id']) && $_GET['patient_id'] == $patient['user_id'] ? 'active' : ''; ?>">
+              <div class="patient-name"><?php echo htmlspecialchars($patient['name']); ?></div>
+              <div class="patient-email"><?php echo htmlspecialchars($patient['email']); ?></div>
+            </a>
+          <?php endwhile; ?>
+        <?php else: ?>
+          <p>No patients found.</p>
+        <?php endif; ?>
       </div>
     </div>
 
-    <div class="stats-cards">
-      <div class="stat-card animate__animated animate__fadeInLeft">
-        <i class="fas fa-calendar-check"></i>
-        <div class="stat-title">Upcoming Appointments</div>
-        <div class="stat-value"><?php echo $appointments_count; ?></div>
-        <div class="stat-change">+2 from yesterday</div>
+    <?php if ($selected_patient): ?>
+      <div class="patient-details">
+        <h3>Medical Records for <?php echo htmlspecialchars($selected_patient['name']); ?></h3>
+        
+        <a href="doctor_add_record.php?patient_id=<?php echo $selected_patient['user_id']; ?>" class="btn-add-record">
+          <i class="fas fa-plus"></i> Add New Record
+        </a>
+        
+        <?php if ($patient_records && $patient_records->num_rows > 0): ?>
+          <div class="records-list">
+            <?php while ($record = $patient_records->fetch_assoc()): ?>
+              <div class="record-card">
+                <div class="record-header">
+                  <span class="record-date"><?php echo date('M j, Y', strtotime($record['appointment_date'])); ?></span>
+                  <span class="record-actions">
+                    <a href="doctor_edit_record.php?record_id=<?php echo $record['record_id']; ?>"><i class="fas fa-edit"></i></a>
+                  </span>
+                </div>
+                <div class="record-diagnosis">
+                  <h4>Diagnosis</h4>
+                  <p><?php echo nl2br(htmlspecialchars($record['diagnosis'])); ?></p>
+                </div>
+                <div class="record-treatment">
+                  <h4>Treatment Plan</h4>
+                  <p><?php echo nl2br(htmlspecialchars($record['treatment_plan'])); ?></p>
+                </div>
+              </div>
+            <?php endwhile; ?>
+          </div>
+        <?php else: ?>
+          <p>No medical records found for this patient.</p>
+        <?php endif; ?>
       </div>
-      <div class="stat-card animate__animated animate__fadeInLeft animate__delay-1s">
-        <i class="fas fa-user-clock"></i>
-        <div class="stat-title">Pending Approvals</div>
-        <div class="stat-value">3</div>
-        <div class="stat-change">-1 from yesterday</div>
-      </div>
-      <div class="stat-card animate__animated animate__fadeInLeft animate__delay-2s">
-        <i class="fas fa-file-medical"></i>
-        <div class="stat-title">Prescriptions Issued</div>
-        <div class="stat-value"><?php echo $prescriptions_count; ?></div>
-        <div class="stat-change">+5 this week</div>
-      </div>
-    </div>
-
-    <div class="quick-actions">
-      <a href="doctor_add_slot.php" class="action-btn animate__animated animate__fadeIn">
-        <i class="fas fa-plus-circle"></i>
-        <span class="action-title">Add Slot</span>
-      </a>
-      <a href="doctor_manage_slots.php" class="action-btn animate__animated animate__fadeIn animate__delay-1s">
-        <i class="fas fa-calendar-alt"></i>
-        <span class="action-title">Manage Slots</span>
-      </a>
-      <a href="doctor_patient_records.php" class="action-btn animate__animated animate__fadeIn animate__delay-2s">
-        <i class="fas fa-users"></i>
-        <span class="action-title">Patient Records</span>
-      </a>
-      <a href="doctor _issue_prescription.php" class="action-btn animate__animated animate__fadeIn animate__delay-3s">
-        <i class="fas fa-file-prescription"></i>
-        <span class="action-title">Issue Prescription</span>
-      </a>
-    </div>
-
-    <div class="upcoming-appointments animate__animated animate__fadeIn">
-      <h2 class="section-title">
-        <i class="fas fa-calendar-day"></i>
-        <span>Upcoming Appointments</span>
-      </h2>
-      
-      <table class="appointments-table">
-        <thead>
-          <tr>
-            <th>Patient</th>
-            <th>Appointment Time</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php
-          $appointments = $conn->query("
-            SELECT b.booking_id, u.name as patient_name, c.date_time, b.status 
-            FROM bookings b
-            JOIN consultation_slots c ON b.slot_id = c.slot_id
-            JOIN users u ON b.patient_id = u.user_id
-            WHERE c.doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
-            AND c.date_time > NOW()
-            ORDER BY c.date_time ASC
-            LIMIT 5
-          ");
-          
-          if ($appointments && $appointments->num_rows > 0) {
-            while ($row = $appointments->fetch_assoc()) {
-              $date = date('M j, Y', strtotime($row['date_time']));
-              $time = date('h:i A', strtotime($row['date_time']));
-              echo "
-                <tr>
-                  <td class='patient-name'>{$row['patient_name']}</td>
-                  <td>
-                    <div class='appointment-time'>
-                      <span class='appointment-date'>{$date}</span>
-                      <span class='appointment-hour'>{$time}</span>
-                    </div>
-                  </td>
-                  <td><span class='status-badge {$row['status']}'>" . ucfirst($row['status']) . "</span></td>
-                  <td>
-                    <i class='fas fa-eye action-icon' title='View Details'></i>
-                    <i class='fas fa-video action-icon' title='Start Consultation'></i>
-                    <i class='fas fa-file-prescription action-icon' title='Issue Prescription'></i>
-                  </td>
-                </tr>
-              ";
-            }
-          } else {
-            echo "
-              <tr>
-                <td colspan='4' style='text-align: center; padding: 30px; color: var(--text-light);'>
-                  No upcoming appointments found
-                </td>
-              </tr>
-            ";
-          }
-          ?>
-        </tbody>
-      </table>
-    </div>
+    <?php endif; ?>
   </div>
 </div>
-
-<script>
-  // Add scroll effect to navbar
-  window.addEventListener('scroll', function() {
-    const sidebar = document.querySelector('.sidebar');
-    if (window.scrollY > 10) {
-      sidebar.classList.add('scrolled');
-    } else {
-      sidebar.classList.remove('scrolled');
-    }
-  });
-
-  // Add animation to stat cards on scroll
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('animate__fadeIn');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.1 });
-
-  document.querySelectorAll('.stat-card, .action-btn, .upcoming-appointments').forEach(el => {
-    observer.observe(el);
-  });
-</script>
-
 </body>
 </html>

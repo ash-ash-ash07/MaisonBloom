@@ -10,10 +10,29 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'doctor') {
 $doctor_id = $conn->query("SELECT doctor_id FROM doctor_profiles WHERE user_id = {$_SESSION['user_id']}")->fetch_assoc()['doctor_id'];
 
 if (isset($_GET['delete'])) {
-  $id = intval($_GET['delete']);
-  $conn->query("DELETE FROM consultation_slots WHERE slot_id = $id AND doctor_id = $doctor_id");
-  header("Location: doctor_manage_slots.php");
-  exit;
+    $id = intval($_GET['delete']);
+    
+    // Verify the slot belongs to this doctor
+    $check_slot = $conn->query("SELECT slot_id FROM consultation_slots WHERE slot_id = $id AND doctor_id = $doctor_id");
+    
+    if ($check_slot && $check_slot->num_rows > 0) {
+        // First, delete any bookings for this slot
+        $conn->query("DELETE FROM bookings WHERE slot_id = $id");
+        
+        // Then delete the slot
+        $delete_result = $conn->query("DELETE FROM consultation_slots WHERE slot_id = $id");
+        
+        if ($delete_result) {
+            $_SESSION['success'] = "Slot deleted successfully";
+        } else {
+            $_SESSION['error'] = "Failed to delete slot: " . $conn->error;
+        }
+    } else {
+        $_SESSION['error'] = "Slot not found or you don't have permission to delete it";
+    }
+    
+    header("Location: doctor_manage_slots.php");
+    exit;
 }
 
 if (isset($_GET['approve'])) {
@@ -40,7 +59,17 @@ if (isset($_GET['reject'])) {
   exit;
 }
 ?>
+<?php if (isset($_SESSION['success'])): ?>
+    <div class="alert success">
+        <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+    </div>
+<?php endif; ?>
 
+<?php if (isset($_SESSION['error'])): ?>
+    <div class="alert error">
+        <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+    </div>
+<?php endif; ?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -279,6 +308,24 @@ if (isset($_GET['reject'])) {
         font-size: 0.8rem;
       }
     }
+    .alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
   </style>
 </head>
 <body>
@@ -316,7 +363,7 @@ if (isset($_GET['reject'])) {
             </td>
             <td><span class="status-badge <?php echo $status_class; ?>"><?php echo ucfirst($row['status']); ?></span></td>
             <td class="action-buttons">
-              <a class="btn edit-btn" href="doctor_edit_slot.php?id=<?php echo $row['slot_id']; ?>">
+              <a class="btn edit-btn" href="doctor_edit_slots.php?id=<?php echo $row['slot_id']; ?>">
                 <i class="fas fa-edit"></i> Edit
               </a>
               <a class="btn delete-btn" href="?delete=<?php echo $row['slot_id']; ?>" onclick="return confirm('Are you sure you want to delete this slot?');">

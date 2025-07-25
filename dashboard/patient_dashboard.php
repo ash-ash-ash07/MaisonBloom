@@ -5,8 +5,36 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'patient') {
     header("Location: ../login.php");
     exit;
 }
+
 $user_id = $_SESSION['user_id'];
 $name = $_SESSION['name'];
+// Add to cart functionality
+if (isset($_POST['add_to_cart'])) {
+    $product_id = intval($_POST['product_id']);
+    $quantity = intval($_POST['quantity']);
+    
+    // Get product details
+    $product = $conn->query("SELECT * FROM products WHERE product_id = $product_id")->fetch_assoc();
+    
+    if ($product) {
+        if (!isset($_SESSION['cart'])) {
+            $_SESSION['cart'] = array();
+        }
+        
+        if (isset($_SESSION['cart'][$product_id])) {
+            $_SESSION['cart'][$product_id]['quantity'] += $quantity;
+        } else {
+            $_SESSION['cart'][$product_id] = array(
+                'name' => $product['name'],
+                'price' => $product['price'],
+                'image' => $product['image'],
+                'quantity' => $quantity
+            );
+        }
+        
+        echo "<script>alert('Product added to cart!');</script>";
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -272,13 +300,71 @@ $name = $_SESSION['name'];
   text-align: center;
 }
 
-.btn-group {
-  display: flex;
-  gap: 10px;
-  margin-top: auto;
-  padding-top: 15px;
-}
-
+ .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-direction: column;
+    }
+    
+    .quantity-control {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 10px 0;
+    }
+    
+    .quantity-btn {
+      width: 25px;
+      height: 25px;
+      background: var(--primary-light);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+    
+    .quantity-btn:hover {
+      background: var(--primary-dark);
+      transform: scale(1.1);
+    }
+    
+    .quantity-input {
+      width: 40px;
+      text-align: center;
+      margin: 0 8px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 3px;
+      font-size: 14px;
+    }
+    
+    .cart-icon {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+    
+    .cart-count {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: var(--secondary);
+      color: white;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+    }
 .btn-group form {
   flex: 1;
 }
@@ -655,7 +741,11 @@ $name = $_SESSION['name'];
         flex-direction: column;
       }
     }
+<<<<<<< HEAD
     .order-history-section {
+=======
+     .order-history-section {
+>>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
       max-width: 1000px;
       margin: 80px auto;
       padding: 40px;
@@ -750,11 +840,61 @@ $name = $_SESSION['name'];
       background-color: var(--primary);
       color: white;
     }
+<<<<<<< HEAD
+=======
+    .prescription-section {
+    max-width: 1000px;
+    margin: 80px auto;
+    padding: 40px;
+    background-color: var(--white);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.prescription-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(99, 210, 160, 0.1) 0%, rgba(99, 210, 160, 0) 70%);
+}
+
+.prescription-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 30px;
+}
+
+.prescription-table th {
+    background-color: var(--accent);
+    color: var(--white);
+    padding: 15px;
+    text-align: left;
+    font-weight: 500;
+}
+
+.prescription-table td {
+    padding: 15px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.prescription-table tr:last-child td {
+    border-bottom: none;
+}
+
+.prescription-table tr:hover {
+    background-color: rgba(99, 210, 160, 0.03);
+}
+>>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
   </style>
 </head>
 <body>
 
-  <nav>
+ <nav>
     <div class="logo">
       <i class="fas fa-spa"></i>
       <span>Maison Bloom</span>
@@ -763,8 +903,15 @@ $name = $_SESSION['name'];
       <a href="../home.php">Home</a>
       <a href="../booking.php">Book Now</a>
       <a href="../products.php">Products</a>
+      <a href="patient_profile.php">My Profile</a>
       <a href="../dashboard/patient_feedback.php">Feedback</a>
       <a href="../logout.php">Logout</a>
+      <a href="../cart.php" class="cart-icon">
+        <i class="fas fa-shopping-cart"></i>
+        <?php if(isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
+          <span class="cart-count"><?php echo array_sum(array_column($_SESSION['cart'], 'quantity')); ?></span>
+        <?php endif; ?>
+      </a>
     </div>
   </nav>
 
@@ -775,6 +922,21 @@ $name = $_SESSION['name'];
       <i class="fas fa-heart"></i> Premium Member
     </div>
   </div>
+
+          <?php
+// Check if profile is complete
+$profile_complete = false;
+$profile_check = $conn->query("SELECT * FROM patient_profiles WHERE user_id = $user_id");
+if ($profile_check && $profile_check->num_rows > 0) {
+    $profile_complete = true;
+}
+
+if (!$profile_complete): ?>
+  <div style="max-width: 1000px; margin: 20px auto; padding: 15px; background-color: #fff3cd; border-left: 5px solid #ffc107; color: #856404;">
+    <i class="fas fa-exclamation-circle"></i> Your profile is incomplete. 
+    <a href="patient_profile.php" style="color: #004085; font-weight: 600;">Please complete your profile</a> to help us provide better care.
+  </div>
+<?php endif; ?>
 
   <div class="section-title">
     <h2>Recommended For You</h2>
@@ -794,11 +956,28 @@ $name = $_SESSION['name'];
           <div class='product-info'>
             <h3>{$row['name']}</h3>
             <div class='price'>₹{$row['price']}</div>
+<<<<<<< HEAD
             <div class='btn-group'>
               <a href='../checkout.php?product_id={$row['product_id']}&quantity=1' class='btn btn-secondary'>
                 <i class='fas fa-bolt'></i> Buy Now
               </a>
             </div>
+=======
+            <form method='POST' action='../cart.php'>
+              <div class='quantity-control'>
+                <button type='button' class='quantity-btn minus'><i class='fas fa-minus'></i></button>
+                <input type='number' name='quantity' class='quantity-input' value='1' min='1'>
+                <button type='button' class='quantity-btn plus'><i class='fas fa-plus'></i></button>
+              </div>
+              <input type='hidden' name='product_id' value='{$row['product_id']}'>
+              <div class='btn-group'>
+                
+                <a href='../checkout.php?product_id={$row['product_id']}&quantity=1' class='btn btn-secondary'>
+                  <i class='fas fa-bolt'></i> Buy Now
+                </a>
+              </div>
+            </form>
+>>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
           </div>
         </div>
       ";
@@ -808,6 +987,7 @@ $name = $_SESSION['name'];
       <i class="fas fa-arrow-right"></i> View All Products
     </a>
 </div>
+
 
   <div class="how-it-works">
     <div class="steps-container">
@@ -896,32 +1076,108 @@ $name = $_SESSION['name'];
       <tbody>
         <?php
         $query="
-          SELECT b.*, c.date_time, u.name AS doctor_name 
-          FROM bookings b
-          JOIN consultation_slots c ON b.slot_id = c.slot_id
-          JOIN doctor_profiles d ON c.doctor_id = d.doctor_id
-          JOIN users u ON d.user_id = u.user_id
-          WHERE b.patient_id = $user_id
-          ORDER BY b.created_at DESC
-        ";
+    SELECT b.*, c.date_time, u.name AS doctor_name, cl.meeting_url,
+           (SELECT COUNT(*) FROM prescriptions WHERE booking_id = b.booking_id) AS has_prescription
+    FROM bookings b
+    JOIN consultation_slots c ON b.slot_id = c.slot_id
+    JOIN doctor_profiles d ON c.doctor_id = d.doctor_id
+    JOIN users u ON d.user_id = u.user_id
+    LEFT JOIN consultation_links cl ON b.booking_id = cl.appointment_id
+    WHERE b.patient_id = $user_id
+    ORDER BY b.created_at DESC
+";
         $res = $conn->query($query);
         if ($res && $res->num_rows > 0){
           while ($row = $res->fetch_assoc()){
             $status_class = $row['status'];
-            $formatted_date = date("D, M j, Y - h:i A", strtotime($row['date_time']));
-            echo "<tr>
-                    <td><i class='fas fa-user-md'></i> {$row['doctor_name']}</td>
-                    <td><i class='far fa-clock'></i> $formatted_date</td>
-                    <td><span class='status $status_class'>" . ucfirst($row['status']) . "</span></td>
-                  </tr>";
-          }
-        } else {
-          echo "<tr><td colspan='3' style='text-align: center;'>No bookings yet. <a href='../booking.php' style='color: var(--primary);'>Book your first appointment</a></td></tr>";
-        }
+          $formatted_date = date("D, M j, Y - h:i A", strtotime($row['date_time']));
+echo "<tr>
+        <td><i class='fas fa-user-md'></i> {$row['doctor_name']}</td>
+        <td><i class='far fa-clock'></i> $formatted_date</td>
+        <td><span class='status $status_class'>" . ucfirst($row['status']) . "</span></td>";
+        
+if (!empty($row['meeting_url']) && $row['status'] == 'approved') {
+    echo "<td><a href='{$row['meeting_url']}' target='_blank' class='btn btn-primary'><i class='fas fa-video'></i> Join Consultation</a></td>";
+} elseif ($row['has_prescription']) {
+    echo "<td><a href='view_prescription.php?booking_id={$row['booking_id']}' class='btn btn-secondary'><i class='fas fa-file-prescription'></i> View Prescription</a></td>";
+} else {
+    echo "<td></td>";
+}
+        
+echo "</tr>";
+          }} 
         ?>
       </tbody>
     </table>
   </div>
+
+          <div class="prescription-section">
+    <h2 class="section-title">Your Prescriptions</h2>
+    <table class="prescription-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Doctor</th>
+                <th>Diagnosis</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php
+$prescriptions_query = "
+    SELECT p.*, 
+           u.name AS doctor_name, 
+           d.specialization,
+           DATE_FORMAT(p.created_at, '%M %e, %Y') AS formatted_date,
+           cs.date_time AS appointment_date
+    FROM prescriptions p
+    JOIN doctor_profiles d ON p.doctor_id = d.doctor_id
+    JOIN users u ON d.user_id = u.user_id
+    LEFT JOIN bookings b ON p.booking_id = b.booking_id
+    LEFT JOIN consultation_slots cs ON b.slot_id = cs.slot_id
+    WHERE p.patient_id = $user_id
+    ORDER BY p.created_at DESC
+    LIMIT 5
+";
+
+$prescriptions_result = $conn->query($prescriptions_query);
+
+if ($prescriptions_result && $prescriptions_result->num_rows > 0) {
+    while ($prescription = $prescriptions_result->fetch_assoc()) {
+        $short_diagnosis = !empty($prescription['diagnosis']) 
+            ? (strlen($prescription['diagnosis']) > 50 
+                ? substr($prescription['diagnosis'], 0, 50) . '...' 
+                : $prescription['diagnosis'])
+            : 'No diagnosis provided';
+        
+        echo "<tr>
+                <td>{$prescription['formatted_date']}</td>
+                <td>Dr. {$prescription['doctor_name']} ({$prescription['specialization']})</td>
+                <td>{$short_diagnosis}</td>
+                <td>
+                    <a href='view_prescription.php?prescription_id={$prescription['prescription_id']}' 
+                       class='btn btn-secondary'>
+                       <i class='fas fa-file-prescription'></i> View
+                    </a>
+                </td>
+              </tr>";
+    }
+} else {
+    echo "<tr>
+            <td colspan='4' class='text-center py-3 text-muted'>
+                <i class='fas fa-info-circle mr-2'></i>No prescriptions found
+            </td>
+          </tr>";
+}
+?>
+        </tbody>
+    </table>
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="prescription_history.php" class="btn-view-more">
+            <i class="fas fa-history"></i> View All Prescriptions
+        </a>
+    </div>
+</div>
 
   <div class="feedback-section">
     <h2 class="section-title">
@@ -983,9 +1239,29 @@ $name = $_SESSION['name'];
       </a>
     </div>
   </div>
+<<<<<<< HEAD
   
 <?php
 include('../db.php'); // Adjust path if needed
+=======
+  <script>
+  // Quantity control buttons
+  document.querySelectorAll('.quantity-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const input = this.parentElement.querySelector('.quantity-input');
+      let value = parseInt(input.value);
+      
+      if (this.classList.contains('minus')) {
+        if (value > 1) {
+          input.value = value - 1;
+        }
+      } else {
+        input.value = value + 1;
+      }
+    });
+  });
+</script>
+>>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
 
 $patient_id = $_SESSION['patient_id'] ?? $_SESSION['user_id'] ?? null;
 if (!$patient_id) {

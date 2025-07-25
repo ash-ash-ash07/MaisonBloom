@@ -363,4 +363,8 @@ $items = $conn->query("
   </div>
 
 </body>
+<<<<<<< HEAD
 </html>
+=======
+</html>
+>>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a

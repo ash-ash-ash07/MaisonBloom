@@ -264,7 +264,7 @@ if (isset($_POST['checkout'])) {
       <a href="home.php">Home</a>
       <a href="booking.php">Book Now</a>
       <a href="products.php">Products</a>
-      <a href="patient/patient_feedback.php">Feedback</a>
+      <a href="patient_feedback.php">Feedback</a>
       <a href="logout.php">Logout</a>
       <a href="cart.php" style="position: relative;">
         🛒

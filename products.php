@@ -143,6 +143,19 @@ $res = $conn->query("SELECT * FROM products");
       position: relative;
       display: inline-block;
       width: 100%;
+<<<<<<< HEAD
+=======
+    }
+
+    .page-title:after {
+      content: '';
+      display: block;
+      width: 80px;
+      height: 4px;
+      background: var(--lavender-medium);
+      margin: 15px auto;
+      border-radius: 2px;
+>>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
     }
 
     .page-title:after {
@@ -400,7 +413,11 @@ $res = $conn->query("SELECT * FROM products");
         const form = this.closest('form');
         const buyNowBtn = form.querySelector('.btn-group a[href*="buy_now"]');
         if (buyNowBtn) {
+<<<<<<< HEAD
           const newHref = buyNowBtn.href.replace(/quantity=\d+/, quantity=${input.value});
+=======
+          const newHref = buyNowBtn.href.replace(/quantity=\d+/, `quantity=${input.value}`);
+>>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
           buyNowBtn.href = newHref;
         }
       });
@@ -412,7 +429,11 @@ $res = $conn->query("SELECT * FROM products");
         const form = this.closest('form');
         const buyNowBtn = form.querySelector('.btn-group a[href*="buy_now"]');
         if (buyNowBtn) {
+<<<<<<< HEAD
           const newHref = buyNowBtn.href.replace(/quantity=\d+/, quantity=${this.value});
+=======
+          const newHref = buyNowBtn.href.replace(/quantity=\d+/, `quantity=${this.value}`);
+>>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
           buyNowBtn.href = newHref;
         }
       });
