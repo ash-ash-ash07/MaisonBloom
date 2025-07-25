@@ -655,6 +655,101 @@ $name = $_SESSION['name'];
         flex-direction: column;
       }
     }
+    .order-history-section {
+      max-width: 1000px;
+      margin: 80px auto;
+      padding: 40px;
+      background-color: var(--white);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .order-history-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(138, 99, 210, 0.1) 0%, rgba(138, 99, 210, 0) 70%);
+    }
+    
+    .order-history-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+    }
+    
+    .order-history-table th {
+      background-color: var(--primary);
+      color: var(--white);
+      padding: 15px;
+      text-align: left;
+      font-weight: 500;
+    }
+    
+    .order-history-table td {
+      padding: 15px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .order-history-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .order-history-table tr:hover {
+      background-color: rgba(138, 99, 210, 0.03);
+    }
+    
+    .order-status {
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      display: inline-block;
+    }
+    
+    .status-pending {
+      background-color: #FFF3CD;
+      color: #856404;
+    }
+    
+    .status-processing {
+      background-color: #BEE5EB;
+      color: #0C5460;
+    }
+    
+    .status-shipped {
+      background-color: #D1ECF1;
+      color: #0C5460;
+    }
+    
+    .status-delivered {
+      background-color: #D4EDDA;
+      color: #155724;
+    }
+    
+    .status-cancelled {
+      background-color: #F8D7DA;
+      color: #721C24;
+    }
+    
+    .view-order-btn {
+      background-color: var(--primary-light);
+      color: var(--primary-dark);
+      padding: 5px 12px;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: all 0.3s ease;
+    }
+    
+    .view-order-btn:hover {
+      background-color: var(--primary);
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -700,13 +795,6 @@ $name = $_SESSION['name'];
             <h3>{$row['name']}</h3>
             <div class='price'>₹{$row['price']}</div>
             <div class='btn-group'>
-              <form method='POST' action='../cart.php'>
-                <input type='hidden' name='product_id' value='{$row['product_id']}'>
-                <input type='hidden' name='quantity' value='1'>
-                <button type='submit' name='add_to_cart' class='btn btn-primary'>
-                  <i class='fas fa-cart-plus'></i> Add to Cart
-                </button>
-              </form>
               <a href='../checkout.php?product_id={$row['product_id']}&quantity=1' class='btn btn-secondary'>
                 <i class='fas fa-bolt'></i> Buy Now
               </a>
@@ -846,6 +934,119 @@ $name = $_SESSION['name'];
       <i class="fas fa-comment-alt"></i> Give Feedback
     </a>
   </div>
+  <div class="order-history-section">
+    <h2 class="section-title">
+      <h2>Your Order History</h2>
+    </h2>
+    <table class="order-history-table">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php
+        $orders_query = "
+          SELECT o.* 
+          FROM orders o
+          WHERE o.patient_id = $user_id
+          ORDER BY o.order_date DESC
+          LIMIT 5
+        ";
+        $orders_result = $conn->query($orders_query);
+        
+        if ($orders_result && $orders_result->num_rows > 0) {
+          while ($order = $orders_result->fetch_assoc()) {
+            $status_class = 'status-' . $order['status'];
+            $formatted_date = date("M j, Y", strtotime($order['order_date']));
+            echo "<tr>
+                    <td>#{$order['order_id']}</td>
+                    <td>{$formatted_date}</td>
+                    <td>₹{$order['total_amount']}</td>
+                    <td><span class='order-status {$status_class}'>" . ucfirst($order['status']) . "</span></td>
+                    <td><a href='../order_details.php?order_id={$order['order_id']}' class='view-order-btn'>View Details</a></td>
+                  </tr>";
+          }
+        } else {
+          echo "<tr><td colspan='5' style='text-align: center;'>No orders yet. <a href='../products.php' style='color: var(--primary);'>Start shopping</a></td></tr>";
+        }
+        ?>
+      </tbody>
+    </table>
+    <div style="text-align: center; margin-top: 20px;">
+      <a href="../order_history.php" class="btn-view-more">
+        <i class="fas fa-history"></i> View Full Order History
+      </a>
+    </div>
+  </div>
+  
+<?php
+include('../db.php'); // Adjust path if needed
 
+$patient_id = $_SESSION['patient_id'] ?? $_SESSION['user_id'] ?? null;
+if (!$patient_id) {
+    echo "Error: Patient not logged in.";
+    exit;
+}
+
+$query = "SELECT p.content, u.name AS doctor_name, p.issued_at
+          FROM prescriptions p
+          JOIN doctor_profiles dp ON p.doctor_id = dp.doctor_id
+          JOIN users u ON dp.user_id = u.user_id
+          WHERE p.patient_id = $patient_id
+          ORDER BY p.issued_at DESC";
+
+$result = mysqli_query($conn, $query);
+?>
+
+ <!-- ✅ now HTML starts outside PHP -->
+<div class="container" style="margin-top: 40px;">
+    <h3 style="color: #7b4397;">Your Prescriptions</h3>
+    <table style="width: 100%; border-collapse: collapse; background-color: #f5f0fa; color: #4a148c; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+        <thead>
+            <tr style="background-color: #a084ca; color: white;">
+                <th style="padding: 12px;">Doctor</th>
+                <th style="padding: 12px;">Prescription</th>
+                <th style="padding: 12px;">Date</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php if (mysqli_num_rows($result) > 0): ?>
+            <?php while($row = mysqli_fetch_assoc($result)): ?>
+            <tr>
+                <td style="padding: 10px;"><?= htmlspecialchars($row['doctor_name']) ?></td>
+                <td style="padding: 10px;"><?= nl2br(htmlspecialchars($row['content'])) ?></td>
+                <td style="padding: 10px;"><?= date('M d, Y', strtotime($row['issued_at'])) ?></td>
+            </tr>
+            <?php endwhile; ?>
+        <?php else: ?>
+            <tr><td colspan="3" style="padding: 15px; text-align: center;">No prescriptions found.</td></tr>
+        <?php endif; ?>
+        </tbody>
+    </table>
+</div>
+<a href="prescriptions.php?patient_id=<?= $_SESSION['user_id'] ?>" class="btn">View My Prescriptions</a>
+
+  <script>
+  // Quantity control buttons
+  document.querySelectorAll('.quantity-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const input = this.parentElement.querySelector('.quantity-input');
+      let value = parseInt(input.value);
+      
+      if (this.classList.contains('minus')) {
+        if (value > 1) {
+          input.value = value - 1;
+        }
+      } else {
+        input.value = value + 1;
+      }
+    });
+  });
+</script>
 </body>
 </html>

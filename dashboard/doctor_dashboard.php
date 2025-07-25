@@ -21,6 +21,49 @@ $appointments_count = $conn->query("
     AND b.status = 'approved'
     AND c.date_time > NOW()
 ")->fetch_assoc()['count'];
+$prescription_count = $conn->query("
+    SELECT COUNT(*) as count 
+    FROM prescriptions
+    WHERE doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
+    AND status = 'active'
+")->fetch_assoc()['count'];
+
+// Handle actions
+if (isset($_GET['action'])) {
+    $booking_id = intval($_GET['booking_id']);
+    $doctor_id = $profile['doctor_id'];
+    
+    switch ($_GET['action']) {
+        case 'approve':
+            case 'approve':
+    // Get the slot_id for this booking
+    $slot_info = $conn->query("SELECT slot_id FROM bookings WHERE booking_id = $booking_id")->fetch_assoc();
+    $slot_id = $slot_info['slot_id'];
+    
+    // Update booking status and mark slot as booked
+    $conn->query("UPDATE bookings SET status = 'approved' WHERE booking_id = $booking_id");
+    $conn->query("UPDATE consultation_slots SET status = 'booked' WHERE slot_id = $slot_id");
+    
+    // Reject all other pending requests for this slot
+    $conn->query("UPDATE bookings SET status = 'rejected' WHERE slot_id = $slot_id AND status = 'pending'");
+    break;
+            
+        case 'reject':
+            $conn->query("UPDATE bookings SET status = 'rejected' WHERE booking_id = $booking_id");
+            break;
+            
+        case 'start_consultation':
+    // Generate a unique meeting URL (in a real app, you'd use Zoom/Google Meet API)
+    $meeting_id = uniqid();
+    $meeting_url = "https://meet.maisonbloom.com/" . $meeting_id;
+    $conn->query("INSERT INTO consultation_links (appointment_id, meeting_url, meeting_id, status) 
+                 VALUES ($booking_id, '$meeting_url', '$meeting_id', 'scheduled')");
+    break;
+    }
+    
+    header("Location: doctor_dashboard.php");
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -563,6 +606,213 @@ $appointments_count = $conn->query("
         padding: 20px;
       }
     }
+    .patient-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.patient-card {
+  background: var(--white);
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  text-decoration: none;
+  color: var(--text);
+}
+
+.patient-card:hover, .patient-card.active {
+  background-color: var(--primary-light);
+  color: var(--white);
+}
+
+.patient-card.active {
+  border-left: 4px solid var(--primary-dark);
+}
+
+.patient-name {
+  font-weight: 600;
+}
+
+.patient-email {
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+.patient-card.active .patient-email,
+.patient-card:hover .patient-email {
+  color: rgba(255,255,255,0.8);
+}
+
+.records-list {
+  margin-top: 20px;
+}
+
+.record-card {
+  background: var(--white);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 15px;
+}
+
+.record-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.record-date {
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
+.record-actions a {
+  color: var(--primary);
+  margin-left: 10px;
+}
+
+.record-diagnosis, .record-treatment {
+  margin-bottom: 15px;
+}
+
+.record-diagnosis h4, .record-treatment h4 {
+  color: var(--primary-dark);
+  margin-bottom: 5px;
+}
+
+.btn-add-record {
+  display: inline-block;
+  padding: 10px 20px;
+  background: var(--primary);
+  color: var(--white);
+  border-radius: 8px;
+  text-decoration: none;
+  margin-bottom: 20px;
+  transition: var(--transition);
+}
+
+.btn-add-record:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+/* Prescription Form */
+.prescription-form {
+  max-width: 600px;
+  background: var(--white);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--primary-dark);
+}
+
+.form-group input[type="text"],
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 10px 15px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.form-group textarea {
+  min-height: 100px;
+}
+
+.btn-submit {
+  background: var(--primary);
+  color: var(--white);
+  padding: 12px 25px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.btn-submit:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.patient-info {
+  background: rgba(108, 92, 231, 0.1);
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-top: 5px;
+}
+
+/* Consultation Tables */
+.consultation-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.consultation-table th {
+  background-color: var(--primary);
+  color: var(--white);
+  padding: 15px;
+  text-align: left;
+}
+
+.consultation-table td {
+  padding: 15px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.consultation-table tr:last-child td {
+  border-bottom: none;
+}
+
+.btn-join, .btn-start, .btn-view {
+  display: inline-block;
+  padding: 8px 15px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: var(--transition);
+}
+
+.btn-join {
+  background: var(--accent);
+  color: var(--white);
+}
+
+.btn-start {
+  background: var(--primary);
+  color: var(--white);
+}
+
+.btn-view {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.btn-join:hover, .btn-start:hover, .btn-view:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.consultation-section {
+  margin-bottom: 40px;
+}
   </style>
 </head>
 <body>
@@ -655,7 +905,7 @@ $appointments_count = $conn->query("
       <div class="stat-card animate__animated animate__fadeInLeft animate__delay-2s">
         <i class="fas fa-file-medical"></i>
         <div class="stat-title">Prescriptions Issued</div>
-        <div class="stat-value">12</div>
+        <div class="stat-value"><?php echo $prescriptions_count; ?></div>
         <div class="stat-change">+5 this week</div>
       </div>
     </div>
@@ -695,12 +945,15 @@ $appointments_count = $conn->query("
           </tr>
         </thead>
         <tbody>
-          <?php
+           <?php
           $appointments = $conn->query("
-            SELECT b.booking_id, u.name as patient_name, c.date_time, b.status 
+            SELECT b.booking_id, u.name as patient_name, c.date_time, b.status, 
+                   u.user_id as patient_id, p.record_id, cl.meeting_url
             FROM bookings b
             JOIN consultation_slots c ON b.slot_id = c.slot_id
             JOIN users u ON b.patient_id = u.user_id
+            LEFT JOIN patient_records p ON b.booking_id = p.appointment_id AND p.doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
+            LEFT JOIN consultation_links cl ON b.booking_id = cl.appointment_id
             WHERE c.doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
             AND c.date_time > NOW()
             ORDER BY c.date_time ASC
@@ -711,6 +964,9 @@ $appointments_count = $conn->query("
             while ($row = $appointments->fetch_assoc()) {
               $date = date('M j, Y', strtotime($row['date_time']));
               $time = date('h:i A', strtotime($row['date_time']));
+              $has_record = !empty($row['record_id']);
+              $has_meeting = !empty($row['meeting_url']);
+              
               echo "
                 <tr>
                   <td class='patient-name'>{$row['patient_name']}</td>
@@ -722,21 +978,41 @@ $appointments_count = $conn->query("
                   </td>
                   <td><span class='status-badge {$row['status']}'>" . ucfirst($row['status']) . "</span></td>
                   <td>
-                    <i class='fas fa-eye action-icon' title='View Details'></i>
-                    <i class='fas fa-video action-icon' title='Start Consultation'></i>
-                    <i class='fas fa-file-prescription action-icon' title='Issue Prescription'></i>
-                  </td>
-                </tr>
-              ";
-            }
-          } else {
-            echo "
-              <tr>
-                <td colspan='4' style='text-align: center; padding: 30px; color: var(--text-light);'>
-                  No upcoming appointments found
-                </td>
-              </tr>
-            ";
+                    <a href='doctor_view_patient.php?patient_id={$row['patient_id']}' class='action-icon' title='View Patient'>
+                      <i class='fas fa-eye'></i>
+                    </a>";
+                    
+              if ($row['status'] == 'pending') {
+                echo "
+                    <a href='doctor_dashboard.php?action=approve&booking_id={$row['booking_id']}' class='action-icon' title='Approve'>
+                      <i class='fas fa-check'></i>
+                    </a>
+                    <a href='doctor_dashboard.php?action=reject&booking_id={$row['booking_id']}' class='action-icon' title='Reject'>
+                      <i class='fas fa-times'></i>
+                    </a>";
+              }
+              if ($row['status'] == 'approved') {
+    // Check if meeting exists
+    $meeting = $conn->query("SELECT * FROM consultation_links WHERE appointment_id = {$row['booking_id']}")->fetch_assoc();
+    
+    if ($meeting) {
+        echo "
+        <a href='{$meeting['meeting_url']}' target='_blank' class='action-icon' title='Join Consultation'>
+            <i class='fas fa-video'></i>
+        </a>";
+    } else {
+        echo "
+        <a href='doctor_dashboard.php?action=start_consultation&booking_id={$row['booking_id']}' class='action-icon' title='Start Consultation'>
+            <i class='fas fa-video'></i>
+        </a>";
+    }
+    
+    echo "
+    <a href='doctor_issue_prescription.php?patient_id={$row['patient_id']}&booking_id={$row['booking_id']}' class='action-icon' title='Issue Prescription'>
+        <i class='fas fa-file-prescription'></i>
+    </a>";
+}
+}  
           }
           ?>
         </tbody>

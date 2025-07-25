@@ -29,6 +29,12 @@ if ($user_result) {
 if ($appointment_result) {
     $appointment_count = mysqli_fetch_assoc($appointment_result)['count'];
 }
+$order_count = 0;
+$order_query = "SELECT COUNT(*) as count FROM orders";
+$order_result = mysqli_query($conn, $order_query);
+if ($order_result) {
+    $order_count = mysqli_fetch_assoc($order_result)['count'];
+}
 ?>
 
 <!DOCTYPE html>
@@ -170,7 +176,8 @@ if ($appointment_result) {
       margin: 10px 0;
     }
 
-    .stat-label {
+Ashi🦋🤍, [23-07-2025 09:18]
+.stat-label {
       color: var(--lavender-dark);
       font-size: 0.9rem;
     }
@@ -355,7 +362,8 @@ if ($appointment_result) {
       transform: scale(1.1);
     }
 
-    /* Dark mode styles */
+Ashi🦋🤍, [23-07-2025 09:18]
+/* Dark mode styles */
     body.dark-mode {
       background-color: #1a1a2e;
       color: #e6e6e6;
@@ -454,6 +462,10 @@ if ($appointment_result) {
         <div class="stat-value appointments-stat"><?php echo $appointment_count; ?></div>
         <div class="stat-label">Appointments</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: var(--purple-dark);"><?php echo $order_count; ?></div>
+        <div class="stat-label">Total Orders</div>
+      </div>
     </div>
 
     <div class="card-container">
@@ -471,6 +483,13 @@ if ($appointment_result) {
         <a href="admin_view_product.php" class="btn">View All</a>
       </div>
 
+       <div class="card">
+        <div class="card-icon"><i class="fas fa-shopping-bag"></i></div>
+        <h3>Manage Orders</h3>
+        <p>View and update customer orders and shipping status.</p>
+        <a href="admin_manage_orders.php" class="btn">Manage Orders</a>
+      </div>
+
       <div class="card">
         <div class="card-icon"><i class="fas fa-users"></i></div>
         <h3>Manage Users</h3>
@@ -486,7 +505,8 @@ if ($appointment_result) {
       </div>
     </div>
 
-    <!-- Recent Activity Section -->
+Ashi🦋🤍, [23-07-2025 09:18]
+<!-- Recent Activity Section -->
     <div class="activity-container">
       <div class="activity-header">
         <h3><i class="fas fa-history"></i> Recent Activity</h3>

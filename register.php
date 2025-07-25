@@ -131,7 +131,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     form {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 5px;
     }
 
     .form-group {
@@ -228,7 +228,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       margin-top: 25px;
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 5px;
     }
 
     .links a {
