@@ -836,6 +836,53 @@ if (isset($_POST['add_to_cart'])) {
       background-color: var(--primary);
       color: white;
     }
+    .prescription-section {
+    max-width: 1000px;
+    margin: 80px auto;
+    padding: 40px;
+    background-color: var(--white);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.prescription-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(99, 210, 160, 0.1) 0%, rgba(99, 210, 160, 0) 70%);
+}
+
+.prescription-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 30px;
+}
+
+.prescription-table th {
+    background-color: var(--accent);
+    color: var(--white);
+    padding: 15px;
+    text-align: left;
+    font-weight: 500;
+}
+
+.prescription-table td {
+    padding: 15px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.prescription-table tr:last-child td {
+    border-bottom: none;
+}
+
+.prescription-table tr:hover {
+    background-color: rgba(99, 210, 160, 0.03);
+}
   </style>
 </head>
 <body>
@@ -849,6 +896,7 @@ if (isset($_POST['add_to_cart'])) {
       <a href="../home.php">Home</a>
       <a href="../booking.php">Book Now</a>
       <a href="../products.php">Products</a>
+      <a href="patient_profile.php">My Profile</a>
       <a href="../dashboard/patient_feedback.php">Feedback</a>
       <a href="../logout.php">Logout</a>
       <a href="../cart.php" class="cart-icon">
@@ -867,6 +915,21 @@ if (isset($_POST['add_to_cart'])) {
       <i class="fas fa-heart"></i> Premium Member
     </div>
   </div>
+
+          <?php
+// Check if profile is complete
+$profile_complete = false;
+$profile_check = $conn->query("SELECT * FROM patient_profiles WHERE user_id = $user_id");
+if ($profile_check && $profile_check->num_rows > 0) {
+    $profile_complete = true;
+}
+
+if (!$profile_complete): ?>
+  <div style="max-width: 1000px; margin: 20px auto; padding: 15px; background-color: #fff3cd; border-left: 5px solid #ffc107; color: #856404;">
+    <i class="fas fa-exclamation-circle"></i> Your profile is incomplete. 
+    <a href="patient_profile.php" style="color: #004085; font-weight: 600;">Please complete your profile</a> to help us provide better care.
+  </div>
+<?php endif; ?>
 
   <div class="section-title">
     <h2>Recommended For You</h2>
@@ -998,7 +1061,8 @@ if (isset($_POST['add_to_cart'])) {
       <tbody>
         <?php
         $query="
-    SELECT b.*, c.date_time, u.name AS doctor_name, cl.meeting_url
+    SELECT b.*, c.date_time, u.name AS doctor_name, cl.meeting_url,
+           (SELECT COUNT(*) FROM prescriptions WHERE booking_id = b.booking_id) AS has_prescription
     FROM bookings b
     JOIN consultation_slots c ON b.slot_id = c.slot_id
     JOIN doctor_profiles d ON c.doctor_id = d.doctor_id
@@ -1019,6 +1083,8 @@ echo "<tr>
         
 if (!empty($row['meeting_url']) && $row['status'] == 'approved') {
     echo "<td><a href='{$row['meeting_url']}' target='_blank' class='btn btn-primary'><i class='fas fa-video'></i> Join Consultation</a></td>";
+} elseif ($row['has_prescription']) {
+    echo "<td><a href='view_prescription.php?booking_id={$row['booking_id']}' class='btn btn-secondary'><i class='fas fa-file-prescription'></i> View Prescription</a></td>";
 } else {
     echo "<td></td>";
 }
@@ -1029,6 +1095,74 @@ echo "</tr>";
       </tbody>
     </table>
   </div>
+
+          <div class="prescription-section">
+    <h2 class="section-title">Your Prescriptions</h2>
+    <table class="prescription-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Doctor</th>
+                <th>Diagnosis</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php
+$prescriptions_query = "
+    SELECT p.*, 
+           u.name AS doctor_name, 
+           d.specialization,
+           DATE_FORMAT(p.created_at, '%M %e, %Y') AS formatted_date,
+           cs.date_time AS appointment_date
+    FROM prescriptions p
+    JOIN doctor_profiles d ON p.doctor_id = d.doctor_id
+    JOIN users u ON d.user_id = u.user_id
+    LEFT JOIN bookings b ON p.booking_id = b.booking_id
+    LEFT JOIN consultation_slots cs ON b.slot_id = cs.slot_id
+    WHERE p.patient_id = $user_id
+    ORDER BY p.created_at DESC
+    LIMIT 5
+";
+
+$prescriptions_result = $conn->query($prescriptions_query);
+
+if ($prescriptions_result && $prescriptions_result->num_rows > 0) {
+    while ($prescription = $prescriptions_result->fetch_assoc()) {
+        $short_diagnosis = !empty($prescription['diagnosis']) 
+            ? (strlen($prescription['diagnosis']) > 50 
+                ? substr($prescription['diagnosis'], 0, 50) . '...' 
+                : $prescription['diagnosis'])
+            : 'No diagnosis provided';
+        
+        echo "<tr>
+                <td>{$prescription['formatted_date']}</td>
+                <td>Dr. {$prescription['doctor_name']} ({$prescription['specialization']})</td>
+                <td>{$short_diagnosis}</td>
+                <td>
+                    <a href='view_prescription.php?prescription_id={$prescription['prescription_id']}' 
+                       class='btn btn-secondary'>
+                       <i class='fas fa-file-prescription'></i> View
+                    </a>
+                </td>
+              </tr>";
+    }
+} else {
+    echo "<tr>
+            <td colspan='4' class='text-center py-3 text-muted'>
+                <i class='fas fa-info-circle mr-2'></i>No prescriptions found
+            </td>
+          </tr>";
+}
+?>
+        </tbody>
+    </table>
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="prescription_history.php" class="btn-view-more">
+            <i class="fas fa-history"></i> View All Prescriptions
+        </a>
+    </div>
+</div>
 
   <div class="feedback-section">
     <h2 class="section-title">

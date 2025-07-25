@@ -828,13 +828,13 @@ $prescriptions = $conn->query("
         </a>
       </div>
       <div class="nav-item">
-        <a href="#" class="nav-link">
+        <a href="doctor_patient_records.php" class="nav-link">
           <i class="fas fa-users"></i>
           <span>Patient Records</span>
         </a>
       </div>
       <div class="nav-item">
-        <a href="#" class="nav-link">
+        <a href="doctor_issue_prescription.php" class="nav-link">
           <i class="fas fa-file-prescription"></i>
           <span>Prescriptions</span>
         </a>

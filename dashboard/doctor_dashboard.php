@@ -8,25 +8,58 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'doctor') {
 }
 
 $user_id = $_SESSION['user_id'];
-$user = $conn->query("SELECT name, email FROM users WHERE user_id = $user_id")->fetch_assoc();
-$profile = $conn->query("SELECT * FROM doctor_profiles WHERE user_id = $user_id")->fetch_assoc();
+
+// Get user info with error handling
+$user_query = $conn->query("SELECT name, email FROM users WHERE user_id = $user_id");
+if (!$user_query) {
+    die("Database error: " . $conn->error);
+}
+$user = $user_query->fetch_assoc();
+
+if (!$user) {
+    die("User not found");
+}
+
+// Get doctor profile with error handling
+$profile_query = $conn->query("SELECT * FROM doctor_profiles WHERE user_id = $user_id");
+if (!$profile_query) {
+    die("Database error: " . $conn->error);
+}
+$profile = $profile_query->fetch_assoc();
+
+if (!$profile) {
+    header("Location: doctor_create_profile.php");
+    exit;
+}
+
 $photo = !empty($profile['profile_photo']) ? "../uploads/doctors/" . $profile['profile_photo'] : "../images/default.png";
 
-// Get upcoming appointments count
-$appointments_count = $conn->query("
+// Get upcoming appointments count with error handling
+$appointments_count = 0;
+$count_query = $conn->query("
     SELECT COUNT(*) as count 
     FROM bookings b
     JOIN consultation_slots c ON b.slot_id = c.slot_id
-    WHERE c.doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
+    WHERE c.doctor_id = {$profile['doctor_id']}
     AND b.status = 'approved'
     AND c.date_time > NOW()
-")->fetch_assoc()['count'];
-$prescriptions_count = $conn->query("
+");
+if ($count_query) {
+    $appointments_count = $count_query->fetch_assoc()['count'];
+}
+
+// Get prescriptions count with error handling
+$prescriptions_count = 0;
+$prescriptions_query = $conn->query("
     SELECT COUNT(*) as count 
     FROM prescriptions
-    WHERE doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
+    WHERE doctor_id = {$profile['doctor_id']}
     AND status = 'active'
-")->fetch_assoc()['count'];
+");
+if ($prescriptions_query) {
+    $prescriptions_count = $prescriptions_query->fetch_assoc()['count'];
+}
+
 
 // Handle actions
 if (isset($_GET['action'])) {
@@ -35,30 +68,51 @@ if (isset($_GET['action'])) {
     
     switch ($_GET['action']) {
         case 'approve':
-            case 'approve':
-    // Get the slot_id for this booking
-    $slot_info = $conn->query("SELECT slot_id FROM bookings WHERE booking_id = $booking_id")->fetch_assoc();
-    $slot_id = $slot_info['slot_id'];
-    
-    // Update booking status and mark slot as booked
-    $conn->query("UPDATE bookings SET status = 'approved' WHERE booking_id = $booking_id");
-    $conn->query("UPDATE consultation_slots SET status = 'booked' WHERE slot_id = $slot_id");
-    
-    // Reject all other pending requests for this slot
-    $conn->query("UPDATE bookings SET status = 'rejected' WHERE slot_id = $slot_id AND status = 'pending'");
-    break;
+            // Get the slot_id for this booking
+            $slot_info = $conn->query("SELECT slot_id FROM bookings WHERE booking_id = $booking_id")->fetch_assoc();
+            $slot_id = $slot_info['slot_id'];
+            
+            // Update booking status and mark slot as booked
+            $conn->query("UPDATE bookings SET status = 'approved' WHERE booking_id = $booking_id");
+            $conn->query("UPDATE consultation_slots SET status = 'booked' WHERE slot_id = $slot_id");
+            
+            // Reject all other pending requests for this slot
+            $conn->query("UPDATE bookings SET status = 'rejected' WHERE slot_id = $slot_id AND status = 'pending'");
+            break;
             
         case 'reject':
             $conn->query("UPDATE bookings SET status = 'rejected' WHERE booking_id = $booking_id");
             break;
             
         case 'start_consultation':
-    // Generate a unique meeting URL (in a real app, you'd use Zoom/Google Meet API)
-    $meeting_id = uniqid();
-    $meeting_url = "https://meet.maisonbloom.com/" . $meeting_id;
-    $conn->query("INSERT INTO consultation_links (appointment_id, meeting_url, meeting_id, status) 
-                 VALUES ($booking_id, '$meeting_url', '$meeting_id', 'scheduled')");
-    break;
+            // Generate a unique meeting URL (in a real app, you'd use Zoom/Google Meet API)
+            $meeting_id = uniqid();
+            $meeting_url = "https://meet.maisonbloom.com/" . $meeting_id;
+            
+            // Check if meeting already exists
+            $existing_meeting = $conn->query("SELECT * FROM consultation_links WHERE appointment_id = $booking_id")->fetch_assoc();
+            
+            if ($existing_meeting) {
+                // Update existing meeting
+                $conn->query("UPDATE consultation_links SET 
+                    meeting_url = '$meeting_url',
+                    meeting_id = '$meeting_id',
+                    status = 'scheduled'
+                    WHERE link_id = {$existing_meeting['link_id']}");
+            } else {
+                // Create new meeting
+                $conn->query("INSERT INTO consultation_links (appointment_id, meeting_url, meeting_id, status) 
+                             VALUES ($booking_id, '$meeting_url', '$meeting_id', 'scheduled')");
+            }
+            
+            // Update booking status
+            $conn->query("UPDATE bookings SET status = 'in_progress' WHERE booking_id = $booking_id");
+            break;
+            
+        case 'complete_consultation':
+            $conn->query("UPDATE consultation_links SET status = 'completed' WHERE appointment_id = $booking_id");
+            $conn->query("UPDATE bookings SET status = 'completed' WHERE booking_id = $booking_id");
+            break;
     }
     
     header("Location: doctor_dashboard.php");
@@ -813,6 +867,25 @@ if (isset($_GET['action'])) {
 .consultation-section {
   margin-bottom: 40px;
 }
+.action-icon.completed {
+    color: var(--accent);
+}
+
+.status-badge.in_progress {
+    background-color: #bee5eb;
+    color: #0c5460;
+}
+
+.status-badge.completed {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.consultation-status {
+    font-size: 0.8rem;
+    margin-top: 5px;
+    color: var(--text-light);
+}
   </style>
 </head>
 <body>
@@ -919,11 +992,11 @@ if (isset($_GET['action'])) {
         <i class="fas fa-calendar-alt"></i>
         <span class="action-title">Manage Slots</span>
       </a>
-      <a href="#" class="action-btn animate__animated animate__fadeIn animate__delay-2s">
+      <a href="doctor_patient_records.php" class="action-btn animate__animated animate__fadeIn animate__delay-2s">
         <i class="fas fa-users"></i>
         <span class="action-title">Patient Records</span>
       </a>
-      <a href="#" class="action-btn animate__animated animate__fadeIn animate__delay-3s">
+      <a href="doctor _issue_prescription.php" class="action-btn animate__animated animate__fadeIn animate__delay-3s">
         <i class="fas fa-file-prescription"></i>
         <span class="action-title">Issue Prescription</span>
       </a>
@@ -946,73 +1019,115 @@ if (isset($_GET['action'])) {
         </thead>
         <tbody>
            <?php
-          $appointments = $conn->query("
-            SELECT b.booking_id, u.name as patient_name, c.date_time, b.status, 
-                   u.user_id as patient_id, p.record_id, cl.meeting_url
-            FROM bookings b
-            JOIN consultation_slots c ON b.slot_id = c.slot_id
-            JOIN users u ON b.patient_id = u.user_id
-            LEFT JOIN patient_records p ON b.booking_id = p.appointment_id AND p.doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
-            LEFT JOIN consultation_links cl ON b.booking_id = cl.appointment_id
-            WHERE c.doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
-            AND c.date_time > NOW()
-            ORDER BY c.date_time ASC
-            LIMIT 5
-          ");
+        // Get upcoming appointments with proper status handling
+$appointments = $conn->query("
+    SELECT b.booking_id, u.name as patient_name, c.date_time, b.status, 
+           u.user_id as patient_id, p.record_id, cl.meeting_url
+    FROM bookings b
+    JOIN consultation_slots c ON b.slot_id = c.slot_id
+    JOIN users u ON b.patient_id = u.user_id
+    LEFT JOIN patient_records p ON b.booking_id = p.appointment_id 
+        AND p.doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
+    LEFT JOIN consultation_links cl ON b.booking_id = cl.appointment_id
+    WHERE c.doctor_id = (SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id)
+    AND (
+        b.status = 'approved' 
+        OR b.status = 'in_progress'
+    )
+    AND (c.date_time > NOW() OR b.status = 'in_progress')
+    ORDER BY 
+        CASE 
+            WHEN b.status = 'in_progress' THEN 0
+            WHEN b.status = 'approved' THEN 1
+            ELSE 2
+        END,
+        c.date_time ASC
+    LIMIT 5
+");
+
+if (!$appointments) {
+    die("Error fetching appointments: " . $conn->error);
+}
           
           if ($appointments && $appointments->num_rows > 0) {
             while ($row = $appointments->fetch_assoc()) {
-              $date = date('M j, Y', strtotime($row['date_time']));
-              $time = date('h:i A', strtotime($row['date_time']));
-              $has_record = !empty($row['record_id']);
-              $has_meeting = !empty($row['meeting_url']);
-              
-              echo "
-                <tr>
-                  <td class='patient-name'>{$row['patient_name']}</td>
-                  <td>
-                    <div class='appointment-time'>
-                      <span class='appointment-date'>{$date}</span>
-                      <span class='appointment-hour'>{$time}</span>
-                    </div>
-                  </td>
-                  <td><span class='status-badge {$row['status']}'>" . ucfirst($row['status']) . "</span></td>
-                  <td>
-                    <a href='doctor_view_patient.php?patient_id={$row['patient_id']}' class='action-icon' title='View Patient'>
-                      <i class='fas fa-eye'></i>
-                    </a>";
-                    
-              if ($row['status'] == 'pending') {
-                echo "
-                    <a href='doctor_dashboard.php?action=approve&booking_id={$row['booking_id']}' class='action-icon' title='Approve'>
-                      <i class='fas fa-check'></i>
-                    </a>
-                    <a href='doctor_dashboard.php?action=reject&booking_id={$row['booking_id']}' class='action-icon' title='Reject'>
-                      <i class='fas fa-times'></i>
-                    </a>";
-              }
-              if ($row['status'] == 'approved') {
-    // Check if meeting exists
-    $meeting = $conn->query("SELECT * FROM consultation_links WHERE appointment_id = {$row['booking_id']}")->fetch_assoc();
-    
-    if ($meeting) {
-        echo "
-        <a href='{$meeting['meeting_url']}' target='_blank' class='action-icon' title='Join Consultation'>
-            <i class='fas fa-video'></i>
-        </a>";
-    } else {
-        echo "
-        <a href='doctor_dashboard.php?action=start_consultation&booking_id={$row['booking_id']}' class='action-icon' title='Start Consultation'>
-            <i class='fas fa-video'></i>
-        </a>";
-    }
+    $date = date('M j, Y', strtotime($row['date_time']));
+    $time = date('h:i A', strtotime($row['date_time']));
+    $has_record = !empty($row['record_id']);
     
     echo "
-    <a href='doctor_issue_prescription.php?patient_id={$row['patient_id']}&booking_id={$row['booking_id']}' class='action-icon' title='Issue Prescription'>
-        <i class='fas fa-file-prescription'></i>
-    </a>";
+        <tr>
+            <td class='patient-name'>{$row['patient_name']}</td>
+            <td>
+                <div class='appointment-time'>
+                    <span class='appointment-date'>{$date}</span>
+                    <span class='appointment-hour'>{$time}</span>
+                </div>
+            </td>
+            <td><span class='status-badge {$row['status']}'>" . ucfirst($row['status']) . "</span></td>
+            <td>";
+    
+    // Always show view patient option
+    echo "<a href='doctor_view_patient.php?patient_id={$row['patient_id']}' class='action-icon' title='View Patient'>
+            <i class='fas fa-eye'></i>
+          </a>";
+    
+    if ($row['status'] == 'pending') {
+        echo "<a href='doctor_dashboard.php?action=approve&booking_id={$row['booking_id']}' class='action-icon' title='Approve'>
+                <i class='fas fa-check'></i>
+              </a>
+              <a href='doctor_dashboard.php?action=reject&booking_id={$row['booking_id']}' class='action-icon' title='Reject'>
+                <i class='fas fa-times'></i>
+              </a>";
+    } elseif ($row['status'] == 'approved' || $row['status'] == 'in_progress') {
+        // Check for existing meeting
+        $meeting = $conn->query("SELECT * FROM consultation_links WHERE appointment_id = {$row['booking_id']}")->fetch_assoc();
+        
+        if ($meeting) {
+            echo "<a href='{$meeting['meeting_url']}' target='_blank' class='action-icon' title='Join Consultation'>
+                    <i class='fas fa-video'></i>
+                  </a>";
+            
+            if ($row['status'] == 'in_progress') {
+                echo "<a href='doctor_consultations.php?booking_id={$row['booking_id']}' class='action-icon' title='Continue Consultation'>
+                        <i class='fas fa-comment-medical'></i>
+                      </a>
+                      <a href='doctor_dashboard.php?action=complete_consultation&booking_id={$row['booking_id']}' class='action-icon' title='Complete Consultation'>
+                        <i class='fas fa-check-circle'></i>
+                      </a>";
+            }
+        } else {
+            echo "<a href='doctor_dashboard.php?action=start_consultation&booking_id={$row['booking_id']}' class='action-icon' title='Start Consultation'>
+                    <i class='fas fa-video'></i>
+                  </a>";
+        }
+        
+        // Prescription option
+        $has_prescription = $conn->query("SELECT COUNT(*) as count FROM prescriptions WHERE booking_id = {$row['booking_id']}")->fetch_assoc()['count'];
+        
+        if ($has_prescription) {
+            echo "<a href='view_prescription.php?booking_id={$row['booking_id']}' class='action-icon' title='View Prescription'>
+                    <i class='fas fa-file-prescription'></i>
+                  </a>";
+        } else {
+            echo "<a href='doctor _issue_prescription.php?patient_id={$row['patient_id']}&booking_id={$row['booking_id']}' class='action-icon' title='Create Prescription'>
+                    <i class='fas fa-file-prescription'></i>
+                  </a>";
+        }
+    } elseif ($row['status'] == 'completed') {
+        // Show view prescription option for completed consultations
+        $has_prescription = $conn->query("SELECT COUNT(*) as count FROM prescriptions WHERE booking_id = {$row['booking_id']}")->fetch_assoc()['count'];
+        
+        if ($has_prescription) {
+            echo "<a href='view_prescription.php?booking_id={$row['booking_id']}' class='action-icon' title='View Prescription'>
+                    <i class='fas fa-file-prescription'></i>
+                  </a>";
+        }
+    }
+    
+    echo "</td>
+        </tr>";
 }
-}  
           }
           ?>
         </tbody>
