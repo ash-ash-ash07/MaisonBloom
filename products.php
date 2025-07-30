@@ -91,25 +91,57 @@ $res = $conn->query("SELECT * FROM products");
       justify-content: space-between;
       align-items: center;
       padding: 15px 5%;
-      box-shadow: var(--shadow);
+      box-shadow: 0 2px 15px rgba(0,0,0,0.08);
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: 1000;
     }
 
-    nav a {
-      margin: 0 15px;
-      text-decoration: none;
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo i {
       color: var(--lavender-dark);
-      font-weight: 600;
-      transition: var(--transition);
-      padding: 8px 12px;
-      border-radius: 20px;
     }
 
-    nav a:hover {
-      background-color: var(--lavender-light);
-      color: var(--purple-dark);
+    
+
+    .nav-links {
+      display: flex;
+      gap: 25px;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 500;
+      transition: all 0.3s ease;
+      position: relative;
+      padding: 5px 0;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background-color: var(--primary);
+      transition: width 0.3s ease;
+    }
+
+    .nav-links a:hover::after {
+      width: 100%;
     }
 
     .cart-icon {
@@ -143,19 +175,6 @@ $res = $conn->query("SELECT * FROM products");
       position: relative;
       display: inline-block;
       width: 100%;
-<<<<<<< HEAD
-=======
-    }
-
-    .page-title:after {
-      content: '';
-      display: block;
-      width: 80px;
-      height: 4px;
-      background: var(--lavender-medium);
-      margin: 15px auto;
-      border-radius: 2px;
->>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
     }
 
     .page-title:after {
@@ -167,6 +186,7 @@ $res = $conn->query("SELECT * FROM products");
       margin: 15px auto;
       border-radius: 2px;
     }
+
     .product-container {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -337,29 +357,27 @@ $res = $conn->query("SELECT * FROM products");
   </style>
 </head>
 <body>
+
   <nav>
-    <div><strong style="font-size: 1.2rem; color: var(--purple-dark);">🌸 Maison Bloom</strong></div>
-    <div>
-      <a href="home.php">Home</a>
-      <a href="booking.php">Book Now</a>
-      <a href="products.php">Products</a>
-      <?php if(isset($_SESSION['user_id']) && $_SESSION['role'] == 'patient'): ?>
-        <a href="../dashboard/patient_feedback.php">Feedback</a>
-      <?php endif; ?>
-      <?php if(isset($_SESSION['user_id'])): ?>
-        <a href="logout.php">Logout</a>
-      <?php else: ?>
-        <a href="login.php">Login</a>
-      <?php endif; ?>
-      <a href="cart.php" class="cart-icon">
-        🛒
+    <div class="logo">
+      <i class="fas fa-spa"></i>
+      <span>Maison Bloom</span>
+    </div>
+    <div class="nav-links">
+      <a href="../home.php">Home</a>
+      <a href="../booking.php">Book Now</a>
+      <a href="../products.php">Products</a>
+      <a href="patient_profile.php">My Profile</a>
+      <a href="../dashboard/patient_feedback.php">Feedback</a>
+      <a href="../logout.php">Logout</a>
+      <a href="../cart.php" class="cart-icon">
+        <i class="fas fa-shopping-cart"></i>
         <?php if(isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
           <span class="cart-count"><?php echo array_sum(array_column($_SESSION['cart'], 'quantity')); ?></span>
         <?php endif; ?>
       </a>
     </div>
   </nav>
-
   <h1 class="page-title">Our Premium Products</h1>
 
   <div class="product-container">
@@ -413,11 +431,7 @@ $res = $conn->query("SELECT * FROM products");
         const form = this.closest('form');
         const buyNowBtn = form.querySelector('.btn-group a[href*="buy_now"]');
         if (buyNowBtn) {
-<<<<<<< HEAD
-          const newHref = buyNowBtn.href.replace(/quantity=\d+/, quantity=${input.value});
-=======
           const newHref = buyNowBtn.href.replace(/quantity=\d+/, `quantity=${input.value}`);
->>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
           buyNowBtn.href = newHref;
         }
       });
@@ -429,11 +443,7 @@ $res = $conn->query("SELECT * FROM products");
         const form = this.closest('form');
         const buyNowBtn = form.querySelector('.btn-group a[href*="buy_now"]');
         if (buyNowBtn) {
-<<<<<<< HEAD
-          const newHref = buyNowBtn.href.replace(/quantity=\d+/, quantity=${this.value});
-=======
           const newHref = buyNowBtn.href.replace(/quantity=\d+/, `quantity=${this.value}`);
->>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
           buyNowBtn.href = newHref;
         }
       });

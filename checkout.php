@@ -157,6 +157,7 @@ foreach($_SESSION['cart'] as $product_id => $item) {
       display: flex;
       gap: 30px;
     }
+
     .checkout-form {
       flex: 2;
       background: var(--white);
@@ -301,6 +302,7 @@ foreach($_SESSION['cart'] as $product_id => $item) {
 
   <div class="container">
     <h1 class="page-title">Checkout</h1>
+
     <form method="POST">
       <div class="checkout-container">
         <div class="checkout-form">

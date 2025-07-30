@@ -741,11 +741,7 @@ if (isset($_POST['add_to_cart'])) {
         flex-direction: column;
       }
     }
-<<<<<<< HEAD
-    .order-history-section {
-=======
      .order-history-section {
->>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
       max-width: 1000px;
       margin: 80px auto;
       padding: 40px;
@@ -840,8 +836,6 @@ if (isset($_POST['add_to_cart'])) {
       background-color: var(--primary);
       color: white;
     }
-<<<<<<< HEAD
-=======
     .prescription-section {
     max-width: 1000px;
     margin: 80px auto;
@@ -889,7 +883,6 @@ if (isset($_POST['add_to_cart'])) {
 .prescription-table tr:hover {
     background-color: rgba(99, 210, 160, 0.03);
 }
->>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
   </style>
 </head>
 <body>
@@ -956,13 +949,6 @@ if (!$profile_complete): ?>
           <div class='product-info'>
             <h3>{$row['name']}</h3>
             <div class='price'>₹{$row['price']}</div>
-<<<<<<< HEAD
-            <div class='btn-group'>
-              <a href='../checkout.php?product_id={$row['product_id']}&quantity=1' class='btn btn-secondary'>
-                <i class='fas fa-bolt'></i> Buy Now
-              </a>
-            </div>
-=======
             <form method='POST' action='../cart.php'>
               <div class='quantity-control'>
                 <button type='button' class='quantity-btn minus'><i class='fas fa-minus'></i></button>
@@ -977,7 +963,6 @@ if (!$profile_complete): ?>
                 </a>
               </div>
             </form>
->>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
           </div>
         </div>
       ";
@@ -1098,8 +1083,7 @@ echo "<tr>
         
 if (!empty($row['meeting_url']) && $row['status'] == 'approved') {
     echo "<td><a href='{$row['meeting_url']}' target='_blank' class='btn btn-primary'><i class='fas fa-video'></i> Join Consultation</a></td>";
-} elseif ($row['has_prescription']) {
-    echo "<td><a href='view_prescription.php?booking_id={$row['booking_id']}' class='btn btn-secondary'><i class='fas fa-file-prescription'></i> View Prescription</a></td>";
+
 } else {
     echo "<td></td>";
 }
@@ -1239,11 +1223,6 @@ if ($prescriptions_result && $prescriptions_result->num_rows > 0) {
       </a>
     </div>
   </div>
-<<<<<<< HEAD
-  
-<?php
-include('../db.php'); // Adjust path if needed
-=======
   <script>
   // Quantity control buttons
   document.querySelectorAll('.quantity-btn').forEach(btn => {
@@ -1261,68 +1240,6 @@ include('../db.php'); // Adjust path if needed
     });
   });
 </script>
->>>>>>> 874631f00b810eb307a48fed5c6d77be4d6f6c6a
 
-$patient_id = $_SESSION['patient_id'] ?? $_SESSION['user_id'] ?? null;
-if (!$patient_id) {
-    echo "Error: Patient not logged in.";
-    exit;
-}
-
-$query = "SELECT p.content, u.name AS doctor_name, p.issued_at
-          FROM prescriptions p
-          JOIN doctor_profiles dp ON p.doctor_id = dp.doctor_id
-          JOIN users u ON dp.user_id = u.user_id
-          WHERE p.patient_id = $patient_id
-          ORDER BY p.issued_at DESC";
-
-$result = mysqli_query($conn, $query);
-?>
-
- <!-- ✅ now HTML starts outside PHP -->
-<div class="container" style="margin-top: 40px;">
-    <h3 style="color: #7b4397;">Your Prescriptions</h3>
-    <table style="width: 100%; border-collapse: collapse; background-color: #f5f0fa; color: #4a148c; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-        <thead>
-            <tr style="background-color: #a084ca; color: white;">
-                <th style="padding: 12px;">Doctor</th>
-                <th style="padding: 12px;">Prescription</th>
-                <th style="padding: 12px;">Date</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php if (mysqli_num_rows($result) > 0): ?>
-            <?php while($row = mysqli_fetch_assoc($result)): ?>
-            <tr>
-                <td style="padding: 10px;"><?= htmlspecialchars($row['doctor_name']) ?></td>
-                <td style="padding: 10px;"><?= nl2br(htmlspecialchars($row['content'])) ?></td>
-                <td style="padding: 10px;"><?= date('M d, Y', strtotime($row['issued_at'])) ?></td>
-            </tr>
-            <?php endwhile; ?>
-        <?php else: ?>
-            <tr><td colspan="3" style="padding: 15px; text-align: center;">No prescriptions found.</td></tr>
-        <?php endif; ?>
-        </tbody>
-    </table>
-</div>
-<a href="prescriptions.php?patient_id=<?= $_SESSION['user_id'] ?>" class="btn">View My Prescriptions</a>
-
-  <script>
-  // Quantity control buttons
-  document.querySelectorAll('.quantity-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const input = this.parentElement.querySelector('.quantity-input');
-      let value = parseInt(input.value);
-      
-      if (this.classList.contains('minus')) {
-        if (value > 1) {
-          input.value = value - 1;
-        }
-      } else {
-        input.value = value + 1;
-      }
-    });
-  });
-</script>
 </body>
 </html>

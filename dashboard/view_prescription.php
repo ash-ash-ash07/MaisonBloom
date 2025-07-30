@@ -142,7 +142,6 @@ if (!$prescription) {
     </style>
 </head>
 <body>
-    <?php include "../nav.php"; ?>
 
     <div class="prescription-container">
         <div class="prescription-header">

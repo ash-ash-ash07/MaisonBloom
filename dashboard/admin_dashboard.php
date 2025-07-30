@@ -176,8 +176,7 @@ if ($order_result) {
       margin: 10px 0;
     }
 
-Ashi🦋🤍, [23-07-2025 09:18]
-.stat-label {
+    .stat-label {
       color: var(--lavender-dark);
       font-size: 0.9rem;
     }
@@ -362,8 +361,7 @@ Ashi🦋🤍, [23-07-2025 09:18]
       transform: scale(1.1);
     }
 
-Ashi🦋🤍, [23-07-2025 09:18]
-/* Dark mode styles */
+    /* Dark mode styles */
     body.dark-mode {
       background-color: #1a1a2e;
       color: #e6e6e6;
@@ -505,8 +503,7 @@ Ashi🦋🤍, [23-07-2025 09:18]
       </div>
     </div>
 
-Ashi🦋🤍, [23-07-2025 09:18]
-<!-- Recent Activity Section -->
+    <!-- Recent Activity Section -->
     <div class="activity-container">
       <div class="activity-header">
         <h3><i class="fas fa-history"></i> Recent Activity</h3>
