@@ -417,7 +417,7 @@ $items = $conn->query("
       <p><strong>Payment Method:</strong> <?php echo htmlspecialchars($order['payment_method']); ?></p>
     </div>
     
-    <a href="patient_dashboard.php" class="btn-back">
+    <a href="../home.php" class="btn-back">
       <i class="fas fa-arrow-left"></i> Back to Dashboard
     </a>
   </div>

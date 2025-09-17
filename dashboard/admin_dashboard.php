@@ -494,13 +494,6 @@ if ($order_result) {
         <p>View or update doctors and patients accounts.</p>
         <a href="admin_manage_users.php" class="btn">Manage Users</a>
       </div>
-
-      <div class="card">
-        <div class="card-icon"><i class="fas fa-chart-bar"></i></div>
-        <h3>Consultation Reports</h3>
-        <p>Access appointments and prescription history.</p>
-        <a href="#" class="btn">View Reports</a>
-      </div>
     </div>
 
     <!-- Recent Activity Section -->

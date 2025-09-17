@@ -85,9 +85,9 @@ if (isset($_GET['action'])) {
             break;
             
         case 'start_consultation':
-            // Generate a unique meeting URL (in a real app, you'd use Zoom/Google Meet API)
-            $meeting_id = uniqid();
-            $meeting_url = "https://meet.maisonbloom.com/" . $meeting_id;
+            // Generate Google Meet ID
+            $meeting_id = substr(md5(time() . $booking_id), 0, 12);
+            $meeting_url = "https://meet.google.com/" . $meeting_id;
             
             // Check if meeting already exists
             $existing_meeting = $conn->query("SELECT * FROM consultation_links WHERE appointment_id = $booking_id")->fetch_assoc();
@@ -107,6 +107,10 @@ if (isset($_GET['action'])) {
             
             // Update booking status
             $conn->query("UPDATE bookings SET status = 'in_progress' WHERE booking_id = $booking_id");
+            
+            // Redirect to consultations page
+            header("Location: doctor_consultations.php?booking_id=$booking_id");
+            exit;
             break;
             
         case 'complete_consultation':
@@ -927,19 +931,19 @@ if (isset($_GET['action'])) {
         </a>
       </div>
       <div class="nav-item">
-        <a href="#" class="nav-link">
+        <a href="doctor_patient_records.php" class="nav-link">
           <i class="fas fa-users"></i>
           <span>Patient Records</span>
         </a>
       </div>
       <div class="nav-item">
-        <a href="#" class="nav-link">
+        <a href="view_prescription.php" class="nav-link">
           <i class="fas fa-file-prescription"></i>
           <span>Prescriptions</span>
         </a>
       </div>
       <div class="nav-item">
-        <a href="#" class="nav-link">
+        <a href="doctor_consultations.php" class="nav-link">
           <i class="fas fa-video"></i>
           <span>Consultations</span>
         </a>

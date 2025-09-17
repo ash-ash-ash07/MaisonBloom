@@ -883,6 +883,28 @@ if (isset($_POST['add_to_cart'])) {
 .prescription-table tr:hover {
     background-color: rgba(99, 210, 160, 0.03);
 }
+.consultation-button {
+      padding: 8px 15px;
+      background-color: var(--primary);
+      color: white;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.3s ease;
+    }
+    
+    .consultation-button:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+    
+    /* Ensure the table has enough space for the button */
+    .booking-table td {
+      vertical-align: middle;
+    }
   </style>
 </head>
 <body>
@@ -1045,8 +1067,7 @@ if (!$profile_complete): ?>
       </div>
     </div>
   </div>
-
-  <div class="booking-section">
+    <div class="booking-section">
     <h2 class="section-title">
       <h2>Your Appointment History</h2>
     </h2>
@@ -1056,44 +1077,56 @@ if (!$profile_complete): ?>
           <th>Doctor</th>
           <th>Date & Time</th>
           <th>Status</th>
+          <th>Action</th> <!-- Added Action column header -->
         </tr>
       </thead>
       <tbody>
         <?php
-        $query="
-    SELECT b.*, c.date_time, u.name AS doctor_name, cl.meeting_url,
-           (SELECT COUNT(*) FROM prescriptions WHERE booking_id = b.booking_id) AS has_prescription
-    FROM bookings b
-    JOIN consultation_slots c ON b.slot_id = c.slot_id
-    JOIN doctor_profiles d ON c.doctor_id = d.doctor_id
-    JOIN users u ON d.user_id = u.user_id
-    LEFT JOIN consultation_links cl ON b.booking_id = cl.appointment_id
-    WHERE b.patient_id = $user_id
-    ORDER BY b.created_at DESC
-";
+        $query = "
+          SELECT b.*, c.date_time, u.name AS doctor_name, cl.meeting_url,
+                 (SELECT COUNT(*) FROM prescriptions WHERE booking_id = b.booking_id) AS has_prescription
+          FROM bookings b
+          JOIN consultation_slots c ON b.slot_id = c.slot_id
+          JOIN doctor_profiles d ON c.doctor_id = d.doctor_id
+          JOIN users u ON d.user_id = u.user_id
+          LEFT JOIN consultation_links cl ON b.booking_id = cl.appointment_id
+          WHERE b.patient_id = $user_id
+          ORDER BY b.created_at DESC
+        ";
         $res = $conn->query($query);
-        if ($res && $res->num_rows > 0){
-          while ($row = $res->fetch_assoc()){
+        if ($res && $res->num_rows > 0) {
+          while ($row = $res->fetch_assoc()) {
             $status_class = $row['status'];
-          $formatted_date = date("D, M j, Y - h:i A", strtotime($row['date_time']));
-echo "<tr>
-        <td><i class='fas fa-user-md'></i> {$row['doctor_name']}</td>
-        <td><i class='far fa-clock'></i> $formatted_date</td>
-        <td><span class='status $status_class'>" . ucfirst($row['status']) . "</span></td>";
-        
-if (!empty($row['meeting_url']) && $row['status'] == 'approved') {
-    echo "<td><a href='{$row['meeting_url']}' target='_blank' class='btn btn-primary'><i class='fas fa-video'></i> Join Consultation</a></td>";
-
+            $formatted_date = date("D, M j, Y - h:i A", strtotime($row['date_time']));
+            
+            echo "<tr>
+                    <td><i class='fas fa-user-md'></i> {$row['doctor_name']}</td>
+                    <td><i class='far fa-clock'></i> $formatted_date</td>
+                    <td><span class='status $status_class'>" . ucfirst($row['status']) . "</span></td>
+                    <td>";
+            
+            // Add Google Meet link for approved/in_progress appointments
+            if (($row['status'] == 'approved' || $row['status'] == 'in_progress') && !empty($row['meeting_url'])) {
+    echo "<a href='{$row['meeting_url']}' target='_blank' class='consultation-button'>
+            <i class='fas fa-video'></i> Join Consultation
+          </a>";
+} else if ($row['status'] == 'completed' && $row['has_prescription'] > 0) {
+    echo "<a href='view_prescription.php?booking_id={$row['booking_id']}' class='btn btn-secondary'>
+            <i class='fas fa-file-prescription'></i> View Prescription
+          </a>";
+} else if ($row['status'] == 'approved') {
+    echo "<span class='text-muted'>Waiting for doctor to start consultation</span>";
 } else {
-    echo "<td></td>";
+    echo "<span class='text-muted'>N/A</span>";
 }
-        
-echo "</tr>";
-          }} 
+}
+        }
         ?>
       </tbody>
     </table>
   </div>
+  
+
 
           <div class="prescription-section">
     <h2 class="section-title">Your Prescriptions</h2>
@@ -1136,7 +1169,7 @@ if ($prescriptions_result && $prescriptions_result->num_rows > 0) {
         
         echo "<tr>
                 <td>{$prescription['formatted_date']}</td>
-                <td>Dr. {$prescription['doctor_name']} ({$prescription['specialization']})</td>
+                <td> {$prescription['doctor_name']} ({$prescription['specialization']})</td>
                 <td>{$short_diagnosis}</td>
                 <td>
                     <a href='view_prescription.php?prescription_id={$prescription['prescription_id']}' 

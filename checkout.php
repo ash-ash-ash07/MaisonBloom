@@ -35,80 +35,35 @@ if (isset($_GET['product_id']) && isset($_GET['quantity'])) {
     }
 }
 
-// Process checkout
-  if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
-    $patient_id = $_SESSION['user_id'];
-    $total_amount = 0;
-    
-    // Calculate total
-    foreach ($_SESSION['cart'] as $product_id => $item) {
-        $total_amount += $item['price'] * $item['quantity'];
-    }
-    // Prepare shipping address
-    $shipping_address = "{$_POST['first_name']} {$_POST['last_name']}\n";
-    $shipping_address .= "{$_POST['address']}\n";
-    $shipping_address .= "{$_POST['city']}, {$_POST['state']} {$_POST['zip']}\n";
-    $shipping_address .= "Phone: {$_POST['phone']}";
-    
-    $notes = $_POST['notes'] ?? '';
-    $payment_method = 'Credit Card'; 
-    // Insert order
-    $conn->query("
-        INSERT INTO orders (
-            patient_id, 
-            order_date, 
-            total_amount, 
-            status, 
-            shipping_address,
-            payment_method
-        ) VALUES (
-            $patient_id, 
-            NOW(), 
-            $total_amount, 
-            'pending', 
-            '" . $conn->real_escape_string($shipping_address) . "',
-            '" . $conn->real_escape_string($payment_method) . "'
-        )
-    ");
-    $order_id = $conn->insert_id;
-    
-    // Insert order items
-     foreach ($_SESSION['cart'] as $product_id => $item) {
-        $price = $item['price'];
-        $quantity = $item['quantity'];
-        $conn->query("
-            INSERT INTO order_items (
-                order_id, 
-                product_id, 
-                quantity, 
-                price
-            ) VALUES (
-                $order_id, 
-                $product_id, 
-                $quantity, 
-                $price
-            )
-        ");
-    }
-    // Clear cart
-    unset($_SESSION['cart']);
-    
-    // Redirect to order confirmation
-    header("Location: order_confirmation.php?order_id=$order_id");
-    exit;
-}
-
 // Calculate total
 $total = 0;
 foreach($_SESSION['cart'] as $product_id => $item) {
     $total += $item['price'] * $item['quantity'];
 }
+
+// Store order details in session for payment processing
+$_SESSION['order_details'] = [
+    'total_amount' => $total * 100, // Convert to paise (Razorpay requirement)
+    'currency' => 'INR',
+    'products' => $_SESSION['cart']
+];
+
+// Process checkout after successful payment
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['razorpay_payment_id'])) {
+    // This will be handled by the payment verification callback
+    // The actual order creation happens in verify_payment.php
+}
+
+// Razorpay configuration (replace with your actual keys)
+define('RAZORPAY_KEY_ID', 'rzp_test_RI9FQgK2b4MTMp');
+define('RAZORPAY_KEY_SECRET', 'p65o1EuP7YEI8gNi9bBG4h4Y');
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
   <title>Checkout - Maison Bloom</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <style>
     :root {
       --lavender-light: #f3efff;
@@ -277,6 +232,23 @@ foreach($_SESSION['cart'] as $product_id => $item) {
       background-color: var(--purple-dark);
       transform: translateY(-2px);
     }
+    
+    .razorpay-payment-button {
+      background-color: var(--lavender-dark);
+      color: white;
+      padding: 14px 28px;
+      border-radius: 25px;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 20px;
+    }
+    
+    .razorpay-payment-button:hover {
+      background-color: var(--purple-dark);
+    }
   </style>
 </head>
 <body>
@@ -303,7 +275,7 @@ foreach($_SESSION['cart'] as $product_id => $item) {
   <div class="container">
     <h1 class="page-title">Checkout</h1>
 
-    <form method="POST">
+    <form id="checkout-form" method="POST" action="verify_payment.php">
       <div class="checkout-container">
         <div class="checkout-form">
           <h2>Shipping Information</h2>
@@ -377,11 +349,58 @@ foreach($_SESSION['cart'] as $product_id => $item) {
             <span>₹<?php echo number_format($total, 2); ?></span>
           </div>
           
-          <button type="submit" name="place_order" class="btn btn-primary">Place Order</button>
+          <input type="hidden" name="amount" value="<?php echo $total * 100; ?>">
+          <input type="hidden" name="currency" value="INR">
+          
+          <button type="button" id="rzp-button" class="btn btn-primary">Pay with Razorpay</button>
         </div>
       </div>
     </form>
   </div>
+
+  <script>
+    var options = {
+      "key": "<?php echo RAZORPAY_KEY_ID; ?>",
+      "amount": "<?php echo $total * 100; ?>", // Amount is in currency subunits (paise)
+      "currency": "INR",
+      "name": "Maison Bloom",
+      "description": "Product Purchase",
+      "image": "https://example.com/your_logo.jpg", // Add your logo URL
+      "handler": function (response){
+        // After payment is successful, submit the form to verify_payment.php
+        document.getElementById('checkout-form').submit();
+      },
+      "prefill": {
+        "name": document.getElementById('first_name').value + ' ' + document.getElementById('last_name').value,
+        "email": "<?php echo $_SESSION['email'] ?? ''; ?>",
+        "contact": document.getElementById('phone').value
+      },
+      "notes": {
+        "address": document.getElementById('address').value
+      },
+      "theme": {
+        "color": "#6a5acd"
+      }
+    };
+    
+    var rzp = new Razorpay(options);
+    
+    document.getElementById('rzp-button').onclick = function(e){
+      // Validate form before opening Razorpay
+      if (document.getElementById('first_name').value && 
+          document.getElementById('last_name').value && 
+          document.getElementById('address').value && 
+          document.getElementById('city').value && 
+          document.getElementById('state').value && 
+          document.getElementById('zip').value && 
+          document.getElementById('phone').value) {
+        rzp.open();
+        e.preventDefault();
+      } else {
+        alert('Please fill all the required fields before proceeding to payment.');
+      }
+    }
+  </script>
 
 </body>
 </html>

@@ -2,6 +2,17 @@
 include "db.php";
 session_start();
 
+// Search functionality
+$search_query = "";
+if(isset($_GET['search']) && !empty(trim($_GET['search']))) {
+    $search_query = trim($_GET['search']);
+    $search_condition = "WHERE name LIKE '%" . $conn->real_escape_string($search_query) . "%' 
+                         OR category LIKE '%" . $conn->real_escape_string($search_query) . "%' 
+                         OR description LIKE '%" . $conn->real_escape_string($search_query) . "%'";
+} else {
+    $search_condition = "";
+}
+
 // Add to cart functionality
 if(isset($_POST['add_to_cart'])) {
     $product_id = intval($_POST['product_id']);
@@ -56,8 +67,8 @@ if (isset($_GET['buy_now'])) {
     }
 }
 
-// Get all products
-$res = $conn->query("SELECT * FROM products");
+// Get all products or search results
+$res = $conn->query("SELECT * FROM products $search_condition");
 ?>
 
 <!DOCTYPE html>
@@ -109,11 +120,10 @@ $res = $conn->query("SELECT * FROM products");
       color: var(--lavender-dark);
     }
 
-    
-
     .nav-links {
       display: flex;
       gap: 25px;
+      align-items: center;
     }
 
     .nav-links a {
@@ -166,6 +176,40 @@ $res = $conn->query("SELECT * FROM products");
       font-weight: bold;
     }
 
+    .search-form {
+      display: flex;
+      align-items: center;
+      margin-left: 20px;
+    }
+
+    .search-input {
+      padding: 8px 15px;
+      border: 1px solid #ddd;
+      border-radius: 30px 0 0 30px;
+      outline: none;
+      width: 200px;
+      transition: all 0.3s ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--lavender-medium);
+      width: 250px;
+    }
+
+    .search-btn {
+      background: var(--lavender-medium);
+      border: 1px solid #ddd;
+      border-left: none;
+      border-radius: 0 30px 30px 0;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .search-btn:hover {
+      background: var(--lavender-dark);
+    }
+
     .page-title {
       text-align: center;
       color: var(--purple-dark);
@@ -185,6 +229,30 @@ $res = $conn->query("SELECT * FROM products");
       background: var(--lavender-medium);
       margin: 15px auto;
       border-radius: 2px;
+    }
+
+    .search-results-info {
+      text-align: center;
+      margin: -20px 0 30px;
+      color: var(--lavender-dark);
+      font-style: italic;
+    }
+
+    .clear-search {
+      display: inline-block;
+      margin-left: 10px;
+      color: var(--purple-dark);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: 20px;
+      background: var(--lavender-light);
+      transition: all 0.3s ease;
+    }
+
+    .clear-search:hover {
+      background: var(--lavender-medium);
+      color: white;
     }
 
     .product-container {
@@ -339,6 +407,14 @@ $res = $conn->query("SELECT * FROM products");
       font-size: 1rem;
     }
 
+    .no-products {
+      text-align: center;
+      grid-column: 1 / -1;
+      padding: 40px;
+      color: var(--lavender-dark);
+      font-size: 1.2rem;
+    }
+
     @media (max-width: 768px) {
       .product-container {
         grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -350,8 +426,20 @@ $res = $conn->query("SELECT * FROM products");
         padding: 15px;
       }
       
-      nav > div {
-        margin-top: 10px;
+      .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 15px;
+      }
+      
+      .search-form {
+        margin: 10px 0 0;
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .search-input {
+        width: 70%;
       }
     }
   </style>
@@ -359,51 +447,67 @@ $res = $conn->query("SELECT * FROM products");
 <body>
 
   <nav>
-    <div class="logo">
-      <i class="fas fa-spa"></i>
-      <span>Maison Bloom</span>
-    </div>
+    <div><strong>🌸 Maison Bloom</strong></div>
     <div class="nav-links">
-      <a href="../home.php">Home</a>
-      <a href="../booking.php">Book Now</a>
-      <a href="../products.php">Products</a>
-      <a href="patient_profile.php">My Profile</a>
-      <a href="../dashboard/patient_feedback.php">Feedback</a>
-      <a href="../logout.php">Logout</a>
-      <a href="../cart.php" class="cart-icon">
-        <i class="fas fa-shopping-cart"></i>
+      <a href="home.php">Home</a>
+      <a href="booking.php">Book Now</a>
+      <a href="products.php">Products</a>
+      <a href="patient/patient_feedback.php">Feedback</a>
+      <a href="logout.php">Logout</a>
+      
+      <form method="GET" class="search-form">
+        <input type="text" name="search" class="search-input" placeholder="Search products..." value="<?php echo htmlspecialchars($search_query); ?>">
+        <button type="submit" class="search-btn">🔍</button>
+      </form>
+      
+      <a href="cart.php" style="position: relative;">
+        🛒
         <?php if(isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
-          <span class="cart-count"><?php echo array_sum(array_column($_SESSION['cart'], 'quantity')); ?></span>
+          <span style="position: absolute; top: -10px; right: -10px; background: var(--purple-dark); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+            <?php echo array_sum(array_column($_SESSION['cart'], 'quantity')); ?>
+          </span>
         <?php endif; ?>
       </a>
     </div>
   </nav>
+  
   <h1 class="page-title">Our Premium Products</h1>
+  
+  <?php if(!empty($search_query)): ?>
+    <div class="search-results-info">
+      Showing results for: <strong>"<?php echo htmlspecialchars($search_query); ?>"</strong>
+      <a href="products.php" class="clear-search">Clear search</a>
+    </div>
+  <?php endif; ?>
 
   <div class="product-container">
     <?php
-    while ($row = $res->fetch_assoc()) {
-      echo "
-        <div class='product-card'>
-          <img src='uploads/{$row['image']}' alt='{$row['name']}'>
-          <h3>{$row['name']}</h3>
-          <p class='category'>{$row['category']}</p>
-          <div class='product-price'>₹{$row['price']}</div>
-          
-          <form method='POST' class='add-to-cart-form'>
-            <div class='quantity-control'>
-              <button type='button' class='quantity-btn minus'>-</button>
-              <input type='number' name='quantity' class='quantity-input' value='1' min='1'>
-              <button type='button' class='quantity-btn plus'>+</button>
-            </div>
-            <input type='hidden' name='product_id' value='{$row['product_id']}'>
-            <div class='btn-group'>
-              <button type='submit' name='add_to_cart' class='btn btn-secondary'>Add to Cart</button>
-              <a href='products.php?buy_now=1&product_id={$row['product_id']}&quantity=1' class='btn btn-primary'>Buy Now</a>
-            </div>
-          </form>
-        </div>
-      ";
+    if ($res->num_rows > 0) {
+      while ($row = $res->fetch_assoc()) {
+        echo "
+          <div class='product-card'>
+            <img src='uploads/{$row['image']}' alt='{$row['name']}'>
+            <h3>{$row['name']}</h3>
+            <p class='category'>{$row['category']}</p>
+            <div class='product-price'>₹{$row['price']}</div>
+            
+            <form method='POST' class='add-to-cart-form'>
+              <div class='quantity-control'>
+                <button type='button' class='quantity-btn minus'>-</button>
+                <input type='number' name='quantity' class='quantity-input' value='1' min='1'>
+                <button type='button' class='quantity-btn plus'>+</button>
+              </div>
+              <input type='hidden' name='product_id' value='{$row['product_id']}'>
+              <div class='btn-group'>
+                <button type='submit' name='add_to_cart' class='btn btn-secondary'>Add to Cart</button>
+                <a href='products.php?buy_now=1&product_id={$row['product_id']}&quantity=1" . (!empty($search_query) ? "&search=" . urlencode($search_query) : "") . "' class='btn btn-primary'>Buy Now</a>
+              </div>
+            </form>
+          </div>
+        ";
+      }
+    } else {
+      echo "<div class='no-products'>No products found" . (!empty($search_query) ? " for '" . htmlspecialchars($search_query) . "'" : "") . ".</div>";
     }
     ?>
   </div>
@@ -431,8 +535,9 @@ $res = $conn->query("SELECT * FROM products");
         const form = this.closest('form');
         const buyNowBtn = form.querySelector('.btn-group a[href*="buy_now"]');
         if (buyNowBtn) {
-          const newHref = buyNowBtn.href.replace(/quantity=\d+/, `quantity=${input.value}`);
-          buyNowBtn.href = newHref;
+          const url = new URL(buyNowBtn.href);
+          url.searchParams.set('quantity', input.value);
+          buyNowBtn.href = url.toString();
         }
       });
     });
@@ -443,8 +548,9 @@ $res = $conn->query("SELECT * FROM products");
         const form = this.closest('form');
         const buyNowBtn = form.querySelector('.btn-group a[href*="buy_now"]');
         if (buyNowBtn) {
-          const newHref = buyNowBtn.href.replace(/quantity=\d+/, `quantity=${this.value}`);
-          buyNowBtn.href = newHref;
+          const url = new URL(buyNowBtn.href);
+          url.searchParams.set('quantity', this.value);
+          buyNowBtn.href = url.toString();
         }
       });
     });

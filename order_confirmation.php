@@ -228,6 +228,24 @@ $items = $conn->query("
         </div>
       </div>
       
+      <div class="payment-info">
+    <h3>Payment Information</h3>
+    <div class="detail-row">
+        <span class="detail-label">Payment Method:</span>
+        <span><?php echo htmlspecialchars($order['payment_method']); ?></span>
+    </div>
+    <?php if (isset($_GET['payment_id'])): ?>
+    <div class="detail-row">
+        <span class="detail-label">Payment ID:</span>
+        <span><?php echo htmlspecialchars($_GET['payment_id']); ?></span>
+    </div>
+    <?php endif; ?>
+    <div class="detail-row">
+        <span class="detail-label">Payment Status:</span>
+        <span style="color: green;">✓ Successful</span>
+    </div>
+</div>
+
       <div class="order-items">
         <h3>Order Items</h3>
         <?php while($item = $items->fetch_assoc()): ?>
