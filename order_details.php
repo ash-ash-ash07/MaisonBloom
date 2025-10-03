@@ -14,6 +14,28 @@ if (!isset($_GET['order_id'])) {
 
 $order_id = intval($_GET['order_id']);
 $user_id = $_SESSION['user_id'];
+// Handle order cancellation
+if (isset($_POST['cancel_order']) && $_POST['order_id'] == $order_id) {
+    // Check if order can be cancelled (not shipped or delivered)
+    $order_check = $conn->query("
+        SELECT status FROM orders 
+        WHERE order_id = $order_id AND patient_id = $user_id
+    ")->fetch_assoc();
+    
+    if ($order_check && in_array($order_check['status'], ['pending', 'processing'])) {
+        // Update order status to cancelled
+        $conn->query("
+            UPDATE orders 
+            SET status = 'cancelled' 
+            WHERE order_id = $order_id AND patient_id = $user_id
+        ");
+        
+        // Redirect to refresh the page and show updated status
+        header("Location: order_details.php?order_id=$order_id&cancelled=1");
+        exit;
+    }
+}
+
 
 // Get order details
 $order = $conn->query("
@@ -318,6 +340,54 @@ $items = $conn->query("
       transform: translateY(-2px);
       box-shadow: 0 5px 15px rgba(138, 99, 210, 0.3);
     }
+     .btn-cancel {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 30px;
+      margin-right: 15px;
+      padding: 12px 24px;
+      background: #dc3545;
+      color: white;
+      border-radius: 30px;
+      text-decoration: none;
+      transition: var(--transition);
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .btn-cancel:hover {
+      background: #c82333;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+    }
+ .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 30px;
+    }
+    
+    .alert {
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+    
+    .alert-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .alert-info {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
     
     /* Responsive */
     @media (max-width: 768px) {
@@ -369,6 +439,12 @@ $items = $conn->query("
   </nav>
 
   <div class="order-details-container">
+    <?php if(isset($_GET['cancelled']) && $_GET['cancelled'] == 1): ?>
+      <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i> Your order has been successfully cancelled.
+      </div>
+    <?php endif; ?>
+
     <div class="order-header">
       <div>
         <h2>Order #<?php echo $order['order_id']; ?></h2>
@@ -417,7 +493,25 @@ $items = $conn->query("
       <p><strong>Payment Method:</strong> <?php echo htmlspecialchars($order['payment_method']); ?></p>
     </div>
     
-    <a href="../home.php" class="btn-back">
+    <div class="action-buttons">
+      <?php if(in_array($order['status'], ['pending', 'processing'])): ?>
+        <form method="POST" style="display: inline;">
+          <input type="hidden" name="order_id" value="<?php echo $order['order_id']; ?>">
+          <button type="submit" name="cancel_order" class="btn-cancel" onclick="return confirm('Are you sure you want to cancel this order?')">
+            <i class="fas fa-times-circle"></i> Cancel Order
+          </button>
+        </form>
+      <?php elseif($order['status'] == 'cancelled'): ?>
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle"></i> This order has been cancelled and cannot be modified.
+        </div>
+      <?php else: ?>
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle"></i> This order has already been shipped and cannot be cancelled.
+        </div>
+      <?php endif; ?>
+
+    <a href="dashboard/patient_dashboard.php" class="btn-back">
       <i class="fas fa-arrow-left"></i> Back to Dashboard
     </a>
   </div>

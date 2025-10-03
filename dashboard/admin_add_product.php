@@ -232,7 +232,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   </style>
 </head>
 <body>
-
+<div style="position: absolute; top: 20px; left: 20px; z-index: 1000;">
+    <a href="admin_dashboard.php" style="text-decoration: none; color: var(--purple-dark); font-size: 1.1rem; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; background: rgba(255, 255, 255, 0.9); padding: 10px 15px; border-radius: 30px; box-shadow: var(--shadow); transition: all 0.3s ease;">
+      <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+  </div>
   <div class="form-container">
     <h2><i class="fas fa-plus-circle"></i> Add New Product</h2>
     

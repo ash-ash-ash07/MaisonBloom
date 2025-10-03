@@ -223,7 +223,11 @@ $result = $conn->query("SELECT * FROM users ORDER BY role DESC, created_at DESC"
   </style>
 </head>
 <body>
-
+ <div class="back-nav">
+    <a href="admin_dashboard.php" class="back-btn">
+      <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+  </div>
   <div class="container">
     <h2><i class="fas fa-users-cog"></i> Manage Users</h2>
     

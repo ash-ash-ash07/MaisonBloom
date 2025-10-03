@@ -937,7 +937,7 @@ if (isset($_GET['action'])) {
         </a>
       </div>
       <div class="nav-item">
-        <a href="view_prescription.php" class="nav-link">
+        <a href="doctor _issue_prescription.php" class="nav-link">
           <i class="fas fa-file-prescription"></i>
           <span>Prescriptions</span>
         </a>

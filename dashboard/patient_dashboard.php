@@ -1110,10 +1110,8 @@ if (!$profile_complete): ?>
     echo "<a href='{$row['meeting_url']}' target='_blank' class='consultation-button'>
             <i class='fas fa-video'></i> Join Consultation
           </a>";
-} else if ($row['status'] == 'completed' && $row['has_prescription'] > 0) {
-    echo "<a href='view_prescription.php?booking_id={$row['booking_id']}' class='btn btn-secondary'>
-            <i class='fas fa-file-prescription'></i> View Prescription
-          </a>";
+} else if ($row['status'] == 'completed') {
+    echo "<span class='text-muted'>N/A</span>";
 } else if ($row['status'] == 'approved') {
     echo "<span class='text-muted'>Waiting for doctor to start consultation</span>";
 } else {
@@ -1195,19 +1193,7 @@ if ($prescriptions_result && $prescriptions_result->num_rows > 0) {
         </a>
     </div>
 </div>
-
-  <div class="feedback-section">
-    <h2 class="section-title">
-      <h2>Share Your Experience</h2>
-    </h2>
-    <p style="max-width: 600px; margin: 0 auto 30px; color: var(--text-light);">
-      Your feedback helps us improve our services and helps other patients make informed decisions.
-    </p>
-    <a href="patient_feedback.php" class="feedback-btn">
-      <i class="fas fa-comment-alt"></i> Give Feedback
-    </a>
-  </div>
-  <div class="order-history-section">
+<div class="order-history-section">
     <h2 class="section-title">
       <h2>Your Order History</h2>
     </h2>
@@ -1256,6 +1242,18 @@ if ($prescriptions_result && $prescriptions_result->num_rows > 0) {
       </a>
     </div>
   </div>
+  <div class="feedback-section">
+    <h2 class="section-title">
+      <h2>Share Your Experience</h2>
+    </h2>
+    <p style="max-width: 600px; margin: 0 auto 30px; color: var(--text-light);">
+      Your feedback helps us improve our services and helps other patients make informed decisions.
+    </p>
+    <a href="patient_feedback.php" class="feedback-btn">
+      <i class="fas fa-comment-alt"></i> Give Feedback
+    </a>
+  </div>
+  
   <script>
   // Quantity control buttons
   document.querySelectorAll('.quantity-btn').forEach(btn => {

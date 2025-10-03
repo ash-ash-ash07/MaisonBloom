@@ -195,6 +195,7 @@ $orders_result = $conn->query($orders_query);
   <nav>
     <div class="nav-brand">Maison Bloom Admin</div>
     <div class="nav-links">
+      <a href="admin_dashboard.php">Back to Dashboard</a>
       <a href="../home.php">Home</a>
       <a href="admin_add_product.php">Add Product</a>
       <a href="admin_view_product.php">View Products</a>

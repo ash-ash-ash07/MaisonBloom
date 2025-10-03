@@ -449,6 +449,7 @@ $res = $conn->query("SELECT * FROM products $search_condition");
   <nav>
     <div><strong>🌸 Maison Bloom</strong></div>
     <div class="nav-links">
+      <a href="dashboard/patient_dashboard.php">Back to Dashboard</a>
       <a href="home.php">Home</a>
       <a href="booking.php">Book Now</a>
       <a href="products.php">Products</a>

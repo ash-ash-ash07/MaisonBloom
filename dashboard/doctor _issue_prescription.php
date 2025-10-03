@@ -37,7 +37,7 @@ $photo = !empty($profile['profile_photo']) ? "../uploads/doctors/" . $profile['p
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $patient_id = intval($_POST['patient_id']);
+    $patient_id = intval($_POST['patient_id']); 
     $booking_id = isset($_POST['booking_id']) ? intval($_POST['booking_id']) : null;
     $medication = $conn->real_escape_string($_POST['medication']);
     $dosage = $conn->real_escape_string($_POST['dosage']);
@@ -49,34 +49,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $status = $conn->real_escape_string($_POST['status']);
     
     // Insert prescription with error handling
-    $insert_query = $conn->query("
-        INSERT INTO prescriptions (
-            patient_id, 
-            doctor_id, 
-            booking_id, 
-            medication, 
-            dosage, 
-            instructions,
-            diagnosis,
-            treatment_plan,
-            prescribed_products,
-            notes,
-            status
-        )
-        VALUES (
-            $patient_id, 
-            $doctor_id, 
-            $booking_id, 
-            '$medication', 
-            '$dosage', 
-            '$instructions',
-            '$diagnosis',
-            '$treatment_plan',
-            '$prescribed_products',
-            '$notes',
-            '$status'
-        )
-    ");
+    $booking_id_sql = $booking_id === null ? 'NULL' : $booking_id;
+
+$insert_query = $conn->query("
+    INSERT INTO prescriptions (
+        patient_id, 
+        doctor_id, 
+        booking_id, 
+        medication, 
+        dosage, 
+        instructions,
+        diagnosis,
+        treatment_plan,
+        prescribed_products,
+        notes,
+        status
+    )
+    VALUES (
+        $patient_id, 
+        $doctor_id, 
+        $booking_id_sql, 
+        '" . $conn->real_escape_string($medication) . "', 
+        '" . $conn->real_escape_string($dosage) . "', 
+        '" . $conn->real_escape_string($instructions) . "',
+        '" . $conn->real_escape_string($diagnosis) . "',
+        '" . $conn->real_escape_string($treatment_plan) . "',
+        '" . $conn->real_escape_string($prescribed_products) . "',
+        '" . $conn->real_escape_string($notes) . "',
+        '" . $conn->real_escape_string($status) . "'
+    )
+");
     
     if (!$insert_query) {
         die("Error saving prescription: " . $conn->error);
@@ -468,6 +470,11 @@ if (isset($_GET['patient_id'])) {
   </style>
 </head>
 <body>
+  <div style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
+    <a href="doctor_dashboard.php" style="text-decoration: none; color: var(--purple-dark); font-size: 1.1rem; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; background: rgba(255, 255, 255, 0.9); padding: 10px 15px; border-radius: 30px; box-shadow: var(--shadow); transition: all 0.3s ease;">
+      <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+  </div>
   <div class="main-content">
     <div class="header">
       <h1>Issue Prescription</h1>

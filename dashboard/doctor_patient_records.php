@@ -8,7 +8,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'doctor') {
 }
 
 $user_id = $_SESSION['user_id'];
-$doctor_id = $conn->query("SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id")->fetch_assoc()['doctor_id'];
+$doctor_result = $conn->query("SELECT doctor_id FROM doctor_profiles WHERE user_id = $user_id");
+$doctor_row = $doctor_result->fetch_assoc();
+$doctor_id = $doctor_row ? $doctor_row['doctor_id'] : 0;
 
 // Get all patients who have had appointments with this doctor
 $patients = $conn->query("
@@ -27,14 +29,24 @@ if (isset($_GET['patient_id'])) {
     $patient_id = intval($_GET['patient_id']);
     $selected_patient = $conn->query("SELECT * FROM users WHERE user_id = $patient_id")->fetch_assoc();
     
-    $patient_records = $conn->query("
-        SELECT r.*, b.booking_id, c.date_time as appointment_date
-        FROM patient_records r
-        JOIN bookings b ON r.appointment_id = b.booking_id
-        JOIN consultation_slots c ON b.slot_id = c.slot_id
-        WHERE r.patient_id = $patient_id AND r.doctor_id = $doctor_id
-        ORDER BY r.created_at DESC
-    ");
+    // Debug: Check if we have a valid doctor_id
+    if ($doctor_id > 0) {
+        $patient_records_result = $conn->query("
+            SELECT r.*, b.booking_id, c.date_time as appointment_date
+            FROM patient_records r
+            LEFT JOIN bookings b ON r.appointment_id = b.booking_id
+            LEFT JOIN consultation_slots c ON b.slot_id = c.slot_id
+            WHERE r.patient_id = $patient_id AND r.doctor_id = $doctor_id
+            ORDER BY r.created_at DESC
+        ");
+        
+        if ($patient_records_result) {
+            $patient_records = $patient_records_result;
+        }
+    } else {
+        // If no doctor_id found, show error
+        $error = "Doctor profile not found. Please complete your profile.";
+    }
 }
 ?>
 
@@ -47,6 +59,7 @@ if (isset($_GET['patient_id'])) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
   <style>
+    /* Your existing CSS styles here */
     :root {
       --primary: #6c5ce7;
       --primary-light: #a29bfe;
@@ -406,6 +419,16 @@ if (isset($_GET['patient_id'])) {
       animation: float 6s ease-in-out infinite, pulse 2s infinite;
     }
 
+    /* Error message styling */
+    .alert-error {
+      padding: 15px;
+      background-color: #ffebee;
+      color: #c62828;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #c62828;
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
       .patient-list {
@@ -430,69 +453,99 @@ if (isset($_GET['patient_id'])) {
         padding: 20px 15px;
       }
     }
-</style>
+  </style>
 </head>
 <body>
-
-
-  
-  <div class="main-content">
-    <div class="header">
-      <h1>Patient Records</h1>
-    </div>
-
-    <div class="patient-selection">
-      <h3>Select a Patient</h3>
-      <div class="patient-list">
-        <?php if ($patients && $patients->num_rows > 0): ?>
-          <?php while ($patient = $patients->fetch_assoc()): ?>
-            <a href="doctor_patient_records.php?patient_id=<?php echo $patient['user_id']; ?>" 
-               class="patient-card <?php echo isset($_GET['patient_id']) && $_GET['patient_id'] == $patient['user_id'] ? 'active' : ''; ?>">
-              <div class="patient-name"><?php echo htmlspecialchars($patient['name']); ?></div>
-              <div class="patient-email"><?php echo htmlspecialchars($patient['email']); ?></div>
-            </a>
-          <?php endwhile; ?>
-        <?php else: ?>
-          <p>No patients found.</p>
-        <?php endif; ?>
-      </div>
-    </div>
-
-    <?php if ($selected_patient): ?>
-      <div class="patient-details">
-        <h3>Medical Records for <?php echo htmlspecialchars($selected_patient['name']); ?></h3>
-        
-        <a href="doctor_add_record.php?patient_id=<?php echo $selected_patient['user_id']; ?>" class="btn-add-record">
-          <i class="fas fa-plus"></i> Add New Record
-        </a>
-        
-        <?php if ($patient_records && $patient_records->num_rows > 0): ?>
-          <div class="records-list">
-            <?php while ($record = $patient_records->fetch_assoc()): ?>
-              <div class="record-card">
-                <div class="record-header">
-                  <span class="record-date"><?php echo date('M j, Y', strtotime($record['appointment_date'])); ?></span>
-                  <span class="record-actions">
-                    <a href="doctor_edit_record.php?record_id=<?php echo $record['record_id']; ?>"><i class="fas fa-edit"></i></a>
-                  </span>
-                </div>
-                <div class="record-diagnosis">
-                  <h4>Diagnosis</h4>
-                  <p><?php echo nl2br(htmlspecialchars($record['diagnosis'])); ?></p>
-                </div>
-                <div class="record-treatment">
-                  <h4>Treatment Plan</h4>
-                  <p><?php echo nl2br(htmlspecialchars($record['treatment_plan'])); ?></p>
-                </div>
-              </div>
-            <?php endwhile; ?>
-          </div>
-        <?php else: ?>
-          <p>No medical records found for this patient.</p>
-        <?php endif; ?>
-      </div>
-    <?php endif; ?>
+<div style="position: absolute; top: 20px; left: 20px; z-index: 1000;">
+    <a href="doctor_dashboard.php" style="text-decoration: none; color: var(--purple-dark); font-size: 1.1rem; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; background: rgba(255, 255, 255, 0.9); padding: 10px 15px; border-radius: 30px; box-shadow: var(--shadow); transition: all 0.3s ease;">
+      <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
   </div>
-</div>
+  
+  <div class="dashboard-container">
+    <div class="main-content">
+      <div class="header">
+        <h1>Patient Records</h1>
+      </div>
+
+      <?php if (isset($error)): ?>
+        <div class="alert-error">
+          <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
+        </div>
+      <?php endif; ?>
+
+      <div class="patient-selection">
+        <h3>Select a Patient</h3>
+        <div class="patient-list">
+          <?php if ($patients && $patients->num_rows > 0): ?>
+            <?php while ($patient = $patients->fetch_assoc()): ?>
+              <a href="doctor_patient_records.php?patient_id=<?php echo $patient['user_id']; ?>" 
+                 class="patient-card <?php echo isset($_GET['patient_id']) && $_GET['patient_id'] == $patient['user_id'] ? 'active' : ''; ?>">
+                <div class="patient-name"><?php echo htmlspecialchars($patient['name']); ?></div>
+                <div class="patient-email"><?php echo htmlspecialchars($patient['email']); ?></div>
+              </a>
+            <?php endwhile; ?>
+          <?php else: ?>
+            <p>No patients found.</p>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <?php if ($selected_patient): ?>
+        <div class="patient-details">
+          <h3>Medical Records for <?php echo htmlspecialchars($selected_patient['name']); ?></h3>
+          
+          <a href="doctor_add_record.php?patient_id=<?php echo $selected_patient['user_id']; ?>" class="btn-add-record">
+            <i class="fas fa-plus"></i> Add New Record
+          </a>
+          
+          <?php if ($patient_records && $patient_records->num_rows > 0): ?>
+            <div class="records-list">
+              <?php while ($record = $patient_records->fetch_assoc()): ?>
+                <div class="record-card">
+                  <div class="record-header">
+                    <span class="record-date">
+                      <?php 
+                      if (!empty($record['appointment_date'])) {
+                          echo date('M j, Y', strtotime($record['appointment_date']));
+                      } else {
+                          echo date('M j, Y', strtotime($record['created_at']));
+                      }
+                      ?>
+                    </span>
+                    <span class="record-actions">
+                      <a href="doctor_edit_record.php?record_id=<?php echo $record['record_id']; ?>"><i class="fas fa-edit"></i></a>
+                    </span>
+                  </div>
+                  <?php if (!empty($record['diagnosis'])): ?>
+                  <div class="record-diagnosis">
+                    <h4>Diagnosis</h4>
+                    <p><?php echo nl2br(htmlspecialchars($record['diagnosis'])); ?></p>
+                  </div>
+                  <?php endif; ?>
+                  
+                  <?php if (!empty($record['treatment_plan'])): ?>
+                  <div class="record-treatment">
+                    <h4>Treatment Plan</h4>
+                    <p><?php echo nl2br(htmlspecialchars($record['treatment_plan'])); ?></p>
+                  </div>
+                  <?php endif; ?>
+                  
+                  <?php if (!empty($record['notes'])): ?>
+                  <div class="record-treatment">
+                    <h4>Notes</h4>
+                    <p><?php echo nl2br(htmlspecialchars($record['notes'])); ?></p>
+                  </div>
+                  <?php endif; ?>
+                </div>
+              <?php endwhile; ?>
+            </div>
+          <?php else: ?>
+            <p>No medical records found for this patient.</p>
+          <?php endif; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
 </body>
 </html>

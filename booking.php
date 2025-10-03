@@ -249,7 +249,11 @@ $res = $conn->query($sql);
   </style>
 </head>
 <body>
-
+<div style="padding: 20px 0 0 20px;">
+  <a href="dashboard/patient_dashboard.php" style="text-decoration: none; color: var(--purple-dark); font-size: 1.1rem; display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+    <i class="fas fa-arrow-left"></i> Back to Dashboard
+  </a>
+</div>
 <div class="container">
   <h2><i class="fas fa-calendar-check"></i> Book a Consultation</h2>
 

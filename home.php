@@ -466,6 +466,112 @@
       font-size: 0.9rem;
     }
 
+    /* Meet the Founders Section */
+    .founders-section {
+      background: var(--lavender-light);
+      padding: 100px 20px;
+    }
+
+    .founders-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .founders-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 40px;
+      margin-top: 40px;
+    }
+
+    .founder-card {
+      background: var(--white);
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+      text-align: center;
+      position: relative;
+    }
+
+    .founder-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 15px 30px rgba(155, 120, 255, 0.25);
+    }
+
+    .founder-img-container {
+      height: 300px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .founder-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+
+    .founder-card:hover .founder-img {
+      transform: scale(1.05);
+    }
+
+    .founder-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: linear-gradient(transparent, rgba(75, 0, 130, 0.7));
+      padding: 20px;
+      color: white;
+      text-align: left;
+    }
+
+    .founder-name {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .founder-role {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+
+    .founder-info {
+      padding: 25px;
+    }
+
+    .founder-bio {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .founder-social {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    .founder-social a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: var(--lavender-light);
+      border-radius: 50%;
+      color: var(--purple-dark);
+      transition: all 0.3s ease;
+    }
+
+    .founder-social a:hover {
+      background: var(--lavender-dark);
+      color: white;
+      transform: translateY(-3px);
+    }
+
     /* Newsletter */
     .newsletter-section {
       background: var(--lavender-dark);
@@ -699,32 +805,36 @@
       nav ul {
         display: none;
       }
+      
+      .founders-grid {
+        grid-template-columns: 1fr;
+      }
     }
     /* Hero Slideshow */
-.hero-slideshow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-}
+    .hero-slideshow {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
 
-.hero-slide {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-size: cover;
-  background-position: center;
-  opacity: 0;
-  transition: opacity 1.5s ease-in-out;
-}
+    .hero-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1.5s ease-in-out;
+    }
 
-.hero-slide.active {
-  opacity: 1;
-}
+    .hero-slide.active {
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -740,6 +850,7 @@
         <li><a href="#home">Home</a></li>
         <li><a href="#features">Features</a></li>
         <li><a href="#products">Products</a></li>
+        <li><a href="#founders">Founders</a></li>
         <li><a href="#testimonials">Testimonials</a></li>
         <li><a href="login.php" class="nav-btn">Login</a></li>
       </ul>
@@ -747,23 +858,23 @@
   </nav>
 
   <!-- Hero Section -->
-<section class="hero" id="home">
-  <div class="hero-slideshow">
-    <div class="hero-slide active" style="background-image: url('images/skincare1.jpg');"></div>
-    <div class="hero-slide" style="background-image: url('images/homebg1.jpeg');"></div>
-    <div class="hero-slide" style="background-image: url('images/homebg4.jpg');"></div>
-    <div class="hero-slide" style="background-image: url('images/homebg5.jpg');"></div>
-  </div>
-  <div class="hero-overlay"></div>
-  <div class="hero-content">
-    <h1>Beautiful Skin Starts Here</h1>
-    <p>Expert dermatology care from the comfort of your home. Book consultations, get prescriptions, and shop premium skincare products.</p>
-    <div class="hero-btns">
-      <a href="register.php" class="btn btn-primary">Get Started</a>
-      <a href="#features" class="btn btn-secondary">Learn More</a>
+  <section class="hero" id="home">
+    <div class="hero-slideshow">
+      <div class="hero-slide active" style="background-image: url('images/skincare1.jpg');"></div>
+      <div class="hero-slide" style="background-image: url('images/homebg1.jpeg');"></div>
+      <div class="hero-slide" style="background-image: url('images/homebg4.jpg');"></div>
+      <div class="hero-slide" style="background-image: url('images/homebg5.jpg');"></div>
     </div>
-  </div>
-</section>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1>Beautiful Skin Starts Here</h1>
+      <p>Expert dermatology care from the comfort of your home. Book consultations, get prescriptions, and shop premium skincare products.</p>
+      <div class="hero-btns">
+        <a href="register.php" class="btn btn-primary">Get Started</a>
+        <a href="#features" class="btn btn-secondary">Learn More</a>
+      </div>
+    </div>
+  </section>
 
   <!-- Features Section -->
   <section class="section" id="features">
@@ -831,6 +942,52 @@
       </div>
       <div class="section-btn">
         <a href="login.php" class="btn btn-primary">View All Products</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Meet the Founders Section -->
+  <section class="section founders-section" id="founders">
+    <div class="founders-container">
+      <div class="section-title">
+        <h2>Meet the Founders</h2>
+        <p>The passionate BCA students behind Maison Bloom</p>
+      </div>
+      <div class="founders-grid">
+        <div class="founder-card">
+          <div class="founder-img-container">
+            <img src="images/ashitha.jpg" alt="Ashitha K Chacko" class="founder-img">
+            <div class="founder-overlay">
+              <div class="founder-name">Ashitha K Chacko</div>
+              <div class="founder-role">Co-Founder & Developer</div>
+            </div>
+          </div>
+          <div class="founder-info">
+            <p class="founder-bio">Ashitha is a dedicated BCA student with a passion for technology and skincare. She combines her technical expertise with a vision for making dermatology accessible to everyone.</p>
+            <div class="founder-social">
+              <a href="https://www.linkedin.com/in/ashitha-k-chacko-717a3733b"><i class="fab fa-linkedin-in"></i></a>
+              <a href="#"><i class="fab fa-github"></i></a>
+              <a href="#"><i class="fab fa-instagram"></i></a>
+            </div>
+          </div>
+        </div>
+        <div class="founder-card">
+          <div class="founder-img-container">
+            <img src="images/sree.jpg" alt="Sreelakshmi Satheesh" class="founder-img">
+            <div class="founder-overlay">
+              <div class="founder-name">Sreelakshmi Satheesh</div>
+              <div class="founder-role">Co-Founder & Designer</div>
+            </div>
+          </div>
+          <div class="founder-info">
+            <p class="founder-bio">Sreelakshmi brings creative vision to Maison Bloom. As a BCA student, she merges design thinking with technology to create beautiful, user-friendly experiences for our customers.</p>
+            <div class="founder-social">
+              <a href="https://www.linkedin.com/in/sreelakshmi-satheesh?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"><i class="fab fa-linkedin-in"></i></a>
+              <a href="#"><i class="fab fa-github"></i></a>
+              <a href="#"><i class="fab fa-instagram"></i></a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -907,6 +1064,7 @@
           <li><a href="#home">Home</a></li>
           <li><a href="#features">Services</a></li>
           <li><a href="#products">Products</a></li>
+          <li><a href="#founders">Founders</a></li>
           <li><a href="#testimonials">Testimonials</a></li>
           <li><a href="about.php">About Us</a></li>
         </ul>
@@ -933,20 +1091,21 @@
   <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
   <script>
     // Hero Image Slideshow
-const heroSlides = document.querySelectorAll('.hero-slide');
-let currentSlide = 0;
+    const heroSlides = document.querySelectorAll('.hero-slide');
+    let currentSlide = 0;
 
-function showNextSlide() {
-  heroSlides[currentSlide].classList.remove('active');
-  currentSlide = (currentSlide + 1) % heroSlides.length;
-  heroSlides[currentSlide].classList.add('active');
-}
+    function showNextSlide() {
+      heroSlides[currentSlide].classList.remove('active');
+      currentSlide = (currentSlide + 1) % heroSlides.length;
+      heroSlides[currentSlide].classList.add('active');
+    }
 
-// Change slide every 5 seconds
-setInterval(showNextSlide, 5000);
+    // Change slide every 5 seconds
+    setInterval(showNextSlide, 5000);
 
-// Initialize first slide
-heroSlides[0].classList.add('active');
+    // Initialize first slide
+    heroSlides[0].classList.add('active');
+
     // Initialize Swiper
     var swiper = new Swiper(".mySwiper", {
       slidesPerView: 1,

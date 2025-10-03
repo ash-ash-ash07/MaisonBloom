@@ -329,7 +329,7 @@ $name = $_SESSION['name'];
   <div class="order-history-container">
     <div class="page-header">
       <h1>Your Order History</h1>
-      <a href="../dashboard/patient_dashboard.php" class="btn-view-more">
+      <a href="dashboard/patient_dashboard.php" class="btn-view-more">
         <i class="fas fa-arrow-left"></i> Back to Dashboard
       </a>
     </div>
